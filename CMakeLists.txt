@@ -7,8 +7,12 @@ find_package(OpenCV)
 if(OpenCV_FOUND)
     include_directories(.)
     include_directories(${OpenCV_INCLUDE_DIRS})
+    
     add_executable(runner sample.cpp cow_id.cpp )
     target_link_libraries(runner ${OpenCV_LIBRARIES})
+
+    add_executable(set_display setDisplay.cpp )
+    target_link_libraries(set_display ${OpenCV_LIBRARIES})
 endif()
 
 
