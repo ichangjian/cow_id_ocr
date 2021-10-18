@@ -90,7 +90,7 @@ bool COWID::getCowID(const cv::Mat &_image, std::string &_id)
     // cv::imwrite("w.png", W);
     std::vector<std::vector<cv::Point>> contours;
     std::vector<cv::Vec4i> hierarcy;
-    cv::findContours(W, contours, hierarcy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+    cv::findContours(W, contours, hierarcy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
     std::vector<cv::Rect> rect_num;
     for (int i = 0; i < contours.size(); i++)

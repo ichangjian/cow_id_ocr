@@ -23,7 +23,7 @@ void onMouse(int event, int x, int y, int flags, void *param)
 
     switch (event)
     {
-    case CV_EVENT_LBUTTONDOWN:
+    case cv::EVENT_LBUTTONDOWN:
 
         if (conersSrcPosition.size() == 4)
         {
@@ -77,7 +77,7 @@ int start(std::string file)
         return -1;
     }
 RESET:
-    namedWindow("getCorner", CV_GUI_EXPANDED);
+    namedWindow("getCorner", cv::WINDOW_GUI_EXPANDED);
     resizeWindow("getCorner", 800, 600);
     setMouseCallback("getCorner", onMouse);
     bool whileFlag = true;
@@ -90,11 +90,11 @@ RESET:
             circle(cornerImage, conersSrcPosition[i], 20, Scalar(255, 255, 255), 4);
             circle(cornerImage, conersSrcPosition[i], 4, Scalar(255, 255, 255), 4);
             int size = 10;
-            line(cornerImage, cvPoint(conersSrcPosition[i].x - size * 2, conersSrcPosition[i].y), cvPoint(conersSrcPosition[i].x - size * 5, conersSrcPosition[i].y), Scalar(255, 255, 255), 4, 8, 0);
-            line(cornerImage, cvPoint(conersSrcPosition[i].x + size * 2, conersSrcPosition[i].y), cvPoint(conersSrcPosition[i].x + size * 5, conersSrcPosition[i].y), Scalar(255, 255, 255), 4, 8, 0);
+            line(cornerImage, cv::Point(conersSrcPosition[i].x - size * 2, conersSrcPosition[i].y), cv::Point(conersSrcPosition[i].x - size * 5, conersSrcPosition[i].y), Scalar(255, 255, 255), 4, 8, 0);
+            line(cornerImage, cv::Point(conersSrcPosition[i].x + size * 2, conersSrcPosition[i].y), cv::Point(conersSrcPosition[i].x + size * 5, conersSrcPosition[i].y), Scalar(255, 255, 255), 4, 8, 0);
 
-            line(cornerImage, cvPoint(conersSrcPosition[i].x, conersSrcPosition[i].y - size * 2), cvPoint(conersSrcPosition[i].x, conersSrcPosition[i].y - size * 5), Scalar(255, 255, 255), 4, 8, 0);
-            line(cornerImage, cvPoint(conersSrcPosition[i].x, conersSrcPosition[i].y + size * 2), cvPoint(conersSrcPosition[i].x, conersSrcPosition[i].y + size * 5), Scalar(255, 255, 255), 4, 8, 0);
+            line(cornerImage, cv::Point(conersSrcPosition[i].x, conersSrcPosition[i].y - size * 2), cv::Point(conersSrcPosition[i].x, conersSrcPosition[i].y - size * 5), Scalar(255, 255, 255), 4, 8, 0);
+            line(cornerImage, cv::Point(conersSrcPosition[i].x, conersSrcPosition[i].y + size * 2), cv::Point(conersSrcPosition[i].x, conersSrcPosition[i].y + size * 5), Scalar(255, 255, 255), 4, 8, 0);
         }
         if (conersSrcPosition.size() > 1)
         {
