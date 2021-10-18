@@ -25,11 +25,10 @@ int main(int argc, char **argv)
     std::string id;
     for (size_t i = 0; i < 100; i++)
     {
-    
-    cow.getCowID(image, id);
-    std::cout<<id<<"\n";    /* code */
+        cow.getCowID(image, id);
+        std::cout << id << "\n";
     }
-    
+
     endTime = clock(); //计时结束
     std::cout << "OCR run time is: " << (double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << std::endl;
 }

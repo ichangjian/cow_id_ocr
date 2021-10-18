@@ -16,8 +16,8 @@ bool COWID::initROI(const std::string &_file_yaml)
     cv::FileStorage fs(_file_yaml, cv::FileStorage::READ);
 
     m_corner_src.clear();
-    m_corner_src.push_back(cv::Point2f(fs["LUX"], fs["LUY"]));
-    m_corner_src.push_back(cv::Point2f(fs["LDX"], fs["LDY"]));
+    m_corner_src.push_back(cv::Point2f(fs["MUX"], fs["MUY"]));
+    m_corner_src.push_back(cv::Point2f(fs["MDX"], fs["MDY"]));
     m_corner_src.push_back(cv::Point2f(fs["RDX"], fs["RDY"]));
     m_corner_src.push_back(cv::Point2f(fs["RUX"], fs["RUY"]));
 
@@ -120,9 +120,11 @@ bool COWID::getCowID(const cv::Mat &_image, std::string &_id)
         _id += std::to_string(num);
         // std::cout << num << "\n";
         cv::putText(image, std::to_string(num), cv::Point(rect.x, rect.y), 1, 7, cv::Scalar(0, 0, 255), 3);
+        cv::imshow("Cow ID", image);
+        cv::waitKey(30);
     }
-    // cv::imshow("a", image);
-    // cv::waitKey(50);
+    cv::imshow("Cow ID", image);
+    cv::waitKey(50);
     // waitKey(0);
     // cv::imwrite("ocr.png", image);
     return 0;
