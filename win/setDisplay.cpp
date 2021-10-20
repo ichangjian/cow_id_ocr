@@ -7,6 +7,6 @@ int main(int argc, char **argv)
         start(argv[1]);
     }
     else
-        start("../IMG20210928132544.jpg");
+        start("./display.jpg");
     return 0;
 }

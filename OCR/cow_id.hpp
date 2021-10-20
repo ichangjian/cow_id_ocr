@@ -16,7 +16,6 @@ private:
     cv::Mat m_pose;
     bool m_init_flag;
 
-    bool initROI(const std::string &_file_yaml);
     cv::Mat getDisplayRegion(const cv::Mat &_image);
     bool static compare(const cv::Rect &_a, const cv::Rect &_b);
     void sortPosition(std::vector<cv::Rect> &_rect);
@@ -26,5 +25,6 @@ public:
     COWID(/* args */);
     ~COWID();
 
+    bool initROI(const std::string &_file_yaml);
     bool getCowID(const cv::Mat &_image, std::string &_id);
 };

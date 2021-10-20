@@ -28,8 +28,8 @@ bool COWID::initROI(const std::string &_file_yaml)
         m_corner_src[i] -= cv::Point2f(m_display_roi.x, m_display_roi.y);
     }
 
-    bRect.width /= 2;
-    bRect.height /= 2;
+    // bRect.width /= 2;
+    // bRect.height /= 2;
     std::vector<cv::Point2f> conersDstPosition;
     conersDstPosition.push_back(cv::Point2f(0, 0));
     conersDstPosition.push_back(cv::Point2f(0, bRect.height));
