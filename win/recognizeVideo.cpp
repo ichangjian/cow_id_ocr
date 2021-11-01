@@ -1,11 +1,19 @@
 #include <opencv2/opencv.hpp>
 #include "cow_id.hpp"
+#include <queue>
 using namespace std;
 using namespace cv;
 
 int main(int argc, char **argv)
 {
-    cv::FileStorage fs("./corner.yaml", cv::FileStorage::READ);
+    if (argc != 3)
+    {
+        std::cout << "input error\n";
+        return -1;
+    }
+    std::cout << "corner path=<" << argv[1] << ">\n";
+    std::cout << "vedio path=<" << argv[2] << ">\n";
+    cv::FileStorage fs(argv[1], cv::FileStorage::READ);
     if (!fs.isOpened())
     {
         std::cout << "cant open corner.yaml \n";
@@ -14,23 +22,22 @@ int main(int argc, char **argv)
     int cn = fs["camera"];
 
     fs.release();
-    cv::VideoCapture cap(cn);
+    // cv::VideoCapture cap(cn);
+    cv::VideoCapture cap(argv[2]);
 
     if (!cap.isOpened())
     {
-        std::cout << "cant open camera\n";
+        std::cout << "cant open vedio\n";
         return -1;
     }
-    cap.set(CAP_PROP_FRAME_WIDTH, 1920);
-    cap.set(CAP_PROP_FRAME_HEIGHT, 1080);
     int width = cap.get(CAP_PROP_FRAME_WIDTH);   //帧宽度
     int height = cap.get(CAP_PROP_FRAME_HEIGHT); //帧高度
 
-    cout << "image width " << width << endl;
-    cout << "image height " << height << endl;
+    cout << "image width" << width << endl;
+    cout << "image height" << height << endl;
 
     COWID cow;
-    cow.initROI("./corner.yaml");
+    cow.initROI(argv[1]);
     namedWindow("video", cv::WINDOW_GUI_EXPANDED);
     resizeWindow("video", 960, 540);
 

@@ -4,7 +4,7 @@ COWID::COWID(/* args */)
 {
     m_init_flag = false;
     m_green_threshold = 220;
-    initROI("../corner1.yaml");
+    // initROI("../corner1.yaml");
 }
 
 COWID::~COWID()
@@ -91,7 +91,7 @@ bool COWID::getCowID(const cv::Mat &_image, std::string &_id)
     std::vector<std::vector<cv::Point>> contours;
     std::vector<cv::Vec4i> hierarcy;
     cv::findContours(W, contours, hierarcy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
-
+    static int save_index = 0;
     std::vector<cv::Rect> rect_num;
     for (int i = 0; i < contours.size(); i++)
     {
@@ -119,15 +119,21 @@ bool COWID::getCowID(const cv::Mat &_image, std::string &_id)
         int num = numberOCR(W(rect));
         _id += std::to_string(num);
         // std::cout << num << "\n";
-        cv::putText(image, std::to_string(num), cv::Point(rect.x, rect.y), 1, 7, cv::Scalar(0, 0, 255), 3);
+        cv::putText(image, std::to_string(num), cv::Point(rect.x, rect.y), 1, 5, cv::Scalar(0, 0, 255), 3);
         cv::imshow("Cow ID", image);
-        cv::waitKey(30);
+        if (num == -2)
+        {
+            cv::imwrite("./temp/error_" + std::to_string(save_index++) + ".png", image);
+            return false;
+        }
+
+        // cv::waitKey(30);
     }
     cv::imshow("Cow ID", image);
-    cv::waitKey(50);
+    cv::waitKey(10);
     // waitKey(0);
     // cv::imwrite("ocr.png", image);
-    return 0;
+    return true;
 }
 
 int COWID::numberOCR(cv::Mat n)
