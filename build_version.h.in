@@ -1,0 +1,2 @@
+#define V_BUILD_TIME "@BUILD_TIME@"
+#define V_GIT_INFO "@GIT_BRANCH@_@GIT_HASH@"

@@ -43,7 +43,7 @@ bool COWID::initROI(const std::string &_file_yaml)
     m_font_height_d = m_roi_size.height / 3 - m_roi_size.height / 10;
     m_font_height_u = m_roi_size.height / 3 + m_roi_size.height / 10;
     m_pen_width = int(m_roi_size.height / 60) * 2 + 1;
-    std::cout << m_font_height_d << " " << m_font_height_u << " " << m_pen_width << "\n";
+    // std::cout << m_font_height_d << " " << m_font_height_u << " " << m_pen_width << "\n";
     return true;
 }
 cv::Mat COWID::getDisplayRegion(const cv::Mat &_image)

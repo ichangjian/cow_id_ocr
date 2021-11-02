@@ -170,11 +170,11 @@ const unsigned char CRC_TABLE_L[256] = //Low
         0x44, 0x84, 0x85, 0x45, 0x87, 0x47, 0x46, 0x86, 0x82, 0x42,
         0x43, 0x83, 0x41, 0x81, 0x80, 0x40};
 
-uint do_CRC(unsigned char *p, unsigned char n)
+unsigned int do_CRC(unsigned char *p, unsigned char n)
 {
     uchar uchCRCHi = 0xFF; /* ¸ßCRC×Ö½Ú³õÊ¼»¯ */
     uchar uchCRCLo = 0xFF; /* µÍCRC ×Ö½Ú³õÊ¼»¯ */
-    ulong uIndex;          /* CRCÑ­»·ÖÐµÄË÷Òý */
+    unsigned long uIndex;          /* CRCÑ­»·ÖÐµÄË÷Òý */
     while (n--)            /* ´«ÊäÏûÏ¢»º³åÇø */
     {
         uIndex = uchCRCHi ^ *p++; /* ¼ÆËãCRC */
@@ -184,9 +184,9 @@ uint do_CRC(unsigned char *p, unsigned char n)
     return (uchCRCHi << 8 | uchCRCLo);
 }
 // 计算校验
-void RamAdjust(uchar *add, uint adjlength)
+void RamAdjust(uchar *add, unsigned int adjlength)
 {
-    uint ii;
+    unsigned int ii;
     ii = do_CRC(add, adjlength - 2);
     *(add + adjlength - 1) = (uchar)ii;
     *(add + adjlength - 2) = (uchar)(ii / 0x100);
@@ -194,7 +194,7 @@ void RamAdjust(uchar *add, uint adjlength)
 // 检查校验
 uchar TestAdjust(uchar *add, uchar adjlength)
 {
-    uint ii;
+    unsigned int ii;
     ii = (unsigned int)*(add + adjlength - 1) + (unsigned int)*(add + adjlength - 2) * 0x100;
     if (ii == do_CRC(add, adjlength - 2))
         return 1;
