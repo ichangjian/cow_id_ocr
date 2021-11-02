@@ -1,52 +1,12 @@
-#include "../capture.h"
-// #include <iostream>
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
-#include <inttypes.h>
-#include <opencv2/opencv.hpp>
-#include "xjpeg.h"
-#define ALIGN(x, y) ((x + y - 1) & ~(y - 1))
-struct SawBmp
-{
-    uint8_t *pixels;
-    int width;
-    int height;
-};
+#include "capture.h"
 
-void load_jpeg(uint8_t *src, int size)
-{
 
-    SawBmp sbmp = {0};
-    jpeg_read_header(src, size, sbmp.width, sbmp.height);
-    if (sbmp.pixels)
-        delete[] sbmp.pixels;
 
-    int row_stride = ALIGN(sbmp.width * 3, 4);
-    sbmp.pixels = new uint8_t[sbmp.height * row_stride];
-    jpeg_decode(sbmp.pixels, row_stride);
-    cv::Mat img(sbmp.height,sbmp.width,CV_8UC3,sbmp.pixels);
-        cv::imwrite("haha2.png", img);
-    
-}
-
-bool camera_frame(camera_t *camera, struct timeval timeout)
-{
-    fd_set fds;
-    FD_ZERO(&fds);
-    FD_SET(camera->fd, &fds);
-    int r = select(camera->fd + 1, &fds, 0, 0, &timeout);
-    if (r == -1)
-        exit(EXIT_FAILURE);
-    if (r == 0)
-        return false;
-    return camera_capture(camera);
-}
 
 int main(int argc, char *argv[])
 {
     char *device = "/dev/video2";
-    uint32_t width = 1920; //argc > 2 ? atoi(argv[2]) : 352;
+    uint32_t width = 1920;  //argc > 2 ? atoi(argv[2]) : 352;
     uint32_t height = 1080; //argc > 3 ? atoi(argv[3]) : 288;
     char *output = "result.jpg";
 
@@ -107,12 +67,12 @@ int main(int argc, char *argv[])
         cv::Mat dst = cv::imdecode(data, cv::IMREAD_COLOR);
         endTime = clock(); //计时结束
         std::cout << "read image time is: " << (double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << std::endl;
-        
+
         startTime = clock(); //计时开始
         // load_jpeg(camera->head.start, camera->head.length);
         endTime = clock(); //计时结束
         std::cout << "read image time is: " << (double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << std::endl;
-        
+
         startTime = clock(); //计时开始
         cv::imwrite("haha.png", dst);
     }

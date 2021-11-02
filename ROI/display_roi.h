@@ -222,6 +222,19 @@ RESET:
             fs << "RDY" << conersSrcPosition[2].y;
             fs << "RUX" << conersSrcPosition[3].x;
             fs << "RUY" << conersSrcPosition[3].y;
+            fs.writeComment("网关通信");
+            fs << "IP"
+               << "111.113.25.66";
+            fs << "port" << 18093;
+
+            fs.writeComment("16位数字");
+            fs << "deviceID"
+               << "0111111111111111";
+
+            fs.writeComment("8位数字");
+            fs << "gatewayID"
+               << "00000000";
+
             fs.release();
             imwrite("dst.png", dst);
             finishFlag = true;
