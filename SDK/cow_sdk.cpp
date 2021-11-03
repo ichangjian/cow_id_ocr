@@ -11,6 +11,8 @@ COW::COW(std::string _file)
     m_heartbeat_flag = true;
     m_open_camera_flag = false;
     m_send_id_flag = true;
+    m_release_flag = false;
+    m_heartbeat_slp = 60;
 #ifdef _ANDROID_
     m_window_size = 2;
 #else
@@ -23,21 +25,26 @@ COW::COW(std::string _file)
 
 COW::~COW()
 {
-    release();
-    delete m_cap_uvc;
-}
-
-void COW::release()
-{
+    LOGD("end");
     m_release_flag = true;
     if (m_measurement_heartbeat.joinable())
     {
+        LOGD("closing,wait 60s");
         m_measurement_heartbeat.join();
     }
     if (m_measurement_cowid.joinable())
     {
         m_measurement_cowid.join();
     }
+#ifdef _ANDROID_
+    delete m_cap_uvc;
+#endif
+}
+
+void COW::release()
+{
+    LOGD("release");
+    m_release_flag = true;
 }
 
 bool COW::sendHeartbeat()
@@ -65,10 +72,10 @@ bool COW::sendHeartbeat()
                 }
                 else
                 {
-                    LOGD("heartbeat sleep 60s");
-                    threadSleep(60, 0);
+                    LOGD("heartbeat sleep %ds", m_heartbeat_slp);
+                    threadSleep(m_heartbeat_slp, 0);
                     spend_tm = getCurrentTime() - cur_tm;
-                    LOGD("heartbeat spend %d", spend_tm);
+                    LOGD("heartbeat spend %ds", spend_tm);
                     if (spend_tm > 10 * 60)
                     {
                         m_heartbeat_flag = true;
@@ -80,6 +87,7 @@ bool COW::sendHeartbeat()
             {
                 LOGD("heartbeat sleep for init");
                 threadSleep(0, 0.1E9);
+                LOGD("heartbeat sleep for init2");
             }
         } //while
     }
@@ -128,6 +136,7 @@ bool COW::sendCowID()
             {
                 LOGD("cowid sleep for init");
                 threadSleep(0, 0.1E9);
+                LOGD("cowid sleep for init2");
             }
         } //while
     }
@@ -143,7 +152,7 @@ bool COW::sendCowID()
 
 cv::Mat COW::captureImage()
 {
-    LOGD("capture image");
+    // LOGD("capture image");
     cv::Mat image;
     if (m_test_model)
     {
@@ -262,14 +271,16 @@ bool COW::init()
         m_camera_index = fs["camera"];
         m_camera_file += std::to_string(m_camera_index);
         LOGD("set camera index %d", m_camera_index);
-
-        std::string ip = fs["IP"];
-        int port = fs["port"];
-        LOGD("UDP connect %s:%d", ip.c_str(), port);
-        if (!m_client.Connect(ip.c_str(), port))
+        if (!m_test_model)
         {
-            LOGE("UDP connect error");
-            return false;
+            std::string ip = fs["IP"];
+            int port = fs["port"];
+            LOGD("UDP connect %s:%d", ip.c_str(), port);
+            if (!m_client.Connect(ip.c_str(), port))
+            {
+                LOGE("UDP connect error");
+                return false;
+            }
         }
         m_init_flag = true;
         for (size_t i = 0; i < m_window_size; i++)
@@ -290,8 +301,10 @@ bool COW::init()
 
 bool COW::testVideo(std::string _video_file)
 {
+    LOGD("test video model %s", _video_file.c_str());
     m_video_file = _video_file;
     m_test_model = true;
+    m_heartbeat_slp = 10;
     return true;
 }
 
@@ -320,11 +333,20 @@ bool COW::openCamera()
 #else
         if (m_test_model)
         {
+            LOGD("open video %s", m_video_file.c_str());
             m_cap.open(m_video_file);
         }
         else
         {
             m_cap.open(m_camera_index);
+
+            m_cap.set(cv::CAP_PROP_FRAME_WIDTH, 1920);
+            m_cap.set(cv::CAP_PROP_FRAME_HEIGHT, 1080);
+
+            int width = m_cap.get(cv::CAP_PROP_FRAME_WIDTH);   //帧宽度
+            int height = m_cap.get(cv::CAP_PROP_FRAME_HEIGHT); //帧高度
+            LOGD("image width %d", width);
+            LOGD("image height %d", height);
         }
         if (!m_cap.isOpened())
         {

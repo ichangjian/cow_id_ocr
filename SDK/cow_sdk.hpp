@@ -17,6 +17,7 @@ private:
     bool m_test_model;
     bool m_init_flag;
     bool m_heartbeat_flag;
+    int m_heartbeat_slp;
     bool m_open_camera_flag;
     int m_window_size;
     std::string m_video_file;
@@ -24,7 +25,9 @@ private:
     std::thread m_measurement_cowid;
     std::atomic<bool> m_release_flag;
     cv::VideoCapture m_cap;
-    Capture *m_cap_uvc;
+#ifdef _ANDROID_
+   Capture *m_cap_uvc;
+#endif
     std::list<std::string> m_id_que;
     bool m_send_id_flag;
     cv::Mat captureImage();

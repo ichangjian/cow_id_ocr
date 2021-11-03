@@ -3,7 +3,7 @@ if(OpenCV_FOUND)
     include_directories(../OCR)
     include_directories(${OpenCV_INCLUDE_DIRS})
     
-    add_executable(set_display setDisplay.cpp ../net/net.cpp)
+    add_executable(set_display setDisplay.cpp)
     target_link_libraries(set_display ${OpenCV_LIBRARIES})
 
     add_executable(video2image video2image.cpp )

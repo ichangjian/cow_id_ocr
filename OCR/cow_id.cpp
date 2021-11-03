@@ -239,7 +239,7 @@ int COWID::numberOCR(cv::Mat n)
     }
     else
     {
-        printf("[error_%d_%d_%d_%d_%d_%d_%d]", a, b, c, d, e, f, g);
+        ;// printf("[error_%d_%d_%d_%d_%d_%d_%d]", a, b, c, d, e, f, g);
     }
     return num;
 }

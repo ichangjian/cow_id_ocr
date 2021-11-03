@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <vector>
-#ifdef WIN32
+#ifdef WINDOWS
 // 兼容Linux
 #include <Windows.h>
 #define socklen_t int
