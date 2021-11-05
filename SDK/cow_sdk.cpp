@@ -14,7 +14,7 @@ COW::COW(std::string _file)
     m_release_flag = false;
     m_heartbeat_slp = 60;
 #ifdef _ANDROID_
-    m_window_size = 2;
+    m_window_size = 3;
 #else
     m_window_size = 4;
 #endif
@@ -29,7 +29,7 @@ COW::~COW()
     m_release_flag = true;
     if (m_measurement_heartbeat.joinable())
     {
-        LOGD("closing,wait 60s");
+        LOGD("closing,wait %ds", m_heartbeat_slp);
         m_measurement_heartbeat.join();
     }
     if (m_measurement_cowid.joinable())
@@ -167,7 +167,8 @@ cv::Mat COW::captureImage()
     else
     {
 #ifdef _ANDROID_
-        m_cap_uvc.captureMat(image);
+        LOGD("capture uvc image");
+        m_cap_uvc->captureMat(image);
 #else
         m_cap >> image;
 #endif
@@ -323,13 +324,15 @@ bool COW::openCamera()
     {
 
 #ifdef _ANDROID_
+        LOGD("open camera %s", m_camera_file.c_str());
         m_cap_uvc = new Capture(m_camera_file);
-        if (!m_cap_uvc.initCamera())
+        if (!m_cap_uvc->initCamera())
         {
             LOGD("open camera failed");
             return false;
         }
-        m_cap_uvc.printCameraformats();
+        m_cap_uvc->printCameraformats();
+        // m_cap_uvc->setCamera(MJPG_FORMAT, 1920, 1080, 30);
 #else
         if (m_test_model)
         {
@@ -355,6 +358,7 @@ bool COW::openCamera()
         }
 #endif
         m_open_camera_flag = true;
+        LOGD("open camera finish");
         return true;
     }
     else

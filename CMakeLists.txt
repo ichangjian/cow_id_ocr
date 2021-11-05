@@ -41,18 +41,20 @@ IF (CMAKE_SYSTEM_NAME MATCHES "Linux")
     MESSAGE(STATUS "current platform: Linux ")
     add_definitions(-DLINUX_PC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    add_definitions("-DSHOW_IMAGE")
     set(CMAKE_CXX_STANDARD 11)
 
 ELSEIF (CMAKE_SYSTEM_NAME MATCHES "Windows")
     MESSAGE(STATUS "current platform: Windows")
     set(CMAKE_CXX_FLAGS "-std=gnu++11 -fpermissive")
     add_definitions("-DWINDOWS")
+    add_definitions("-DSHOW_IMAGE")
     set(WIN_SCT ws2_32)
 
 ELSEIF (CMAKE_SYSTEM_NAME MATCHES "Android")
 	MESSAGE(STATUS "current platform: Android ${ANDROID_ABI}")
     add_definitions("-D_ANDROID_")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fopenmp -mfpu=neon ")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -mfpu=neon ")
     set(CMAKE_CXX_STANDARD 11)
     set(Android_log  log)
 
@@ -88,5 +90,6 @@ if(OpenCV_FOUND)
 endif()
 
 add_subdirectory(win)
+add_subdirectory(JNI)
 
 

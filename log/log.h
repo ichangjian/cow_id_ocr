@@ -6,7 +6,8 @@
 #include <ctime>
 #include <iostream>
 #include <string>
-
+#include <vector>
+#include <fstream>
 #ifdef __ANDROID__
 #include <android/log.h>
 #define LOG_TAG "[COWID]"
@@ -55,7 +56,7 @@ public:
 
   int operator()(const char *str, ...)
   {
-    std::string cnt = getCurrentTime() + " LDAR->" + m_file_name + ":" +
+    std::string cnt = getCurrentTime() + " COWID->" + m_file_name + ":" +
                       std::to_string(m_line) + " " + m_caller + " # " +
                       m_log_level;
     va_list argptr;
@@ -65,7 +66,15 @@ public:
     va_end(argptr);
     cnt += log;
     LOGI("%s", cnt.c_str());
+    save2file(cnt, 0);
     return 0;
+  }
+  ~Reporter()
+  {
+    if (cnts.size() > 0)
+    {
+      save2file("", 1);
+    }
   }
 
 private:
@@ -91,7 +100,43 @@ private:
     std::string ct(buf);
     return ct + std::to_string(ms);
   }
+  void save2file(const std::string &cnt, int flag = 0)
+  {
 
+    if (flag == 0)
+    {
+      if (cnts.size() < 10)
+      {
+        cnts.push_back(cnt + "\n");
+        return;
+      }
+    }
+
+    time_t now = time(0);
+    tm *ltm = localtime(&now);
+    char buf[512];
+#ifdef __ANDROID__
+    strftime(buf, 64, "/sdcard/Download/log_%Y-%m-%d.txt", ltm);
+#else
+    strftime(buf, 64, "./temp/log_%Y-%m-%d.txt", ltm);
+#endif
+    std::ofstream outFile;
+    outFile.open(buf, std::ios::app);
+    if (outFile.is_open())
+    {
+      for (size_t i = 0; i < cnts.size(); i++)
+      {
+        outFile.write(cnts[i].c_str(), cnts[i].size());
+      }
+      cnts.clear();
+    }
+    else
+    {
+      LOGI("cant open %s", buf);
+    }
+    outFile.close();
+  }
+  std::vector<std::string> cnts;
   std::string m_caller;
   std::string m_file_path;
   std::string m_file_name;

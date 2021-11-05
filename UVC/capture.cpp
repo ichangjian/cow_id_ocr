@@ -10,7 +10,7 @@
 #include <asm/types.h> /* for videodev2.h */
 #include <memory>
 #include <linux/videodev2.h>
-
+#include "../log/log.h"
 // static void log_stderr(camera_log_t type, const char *msg, void *pointer)
 // {
 //   (void)pointer;
@@ -466,6 +466,7 @@ void Capture::camera_formats_delete(camera_formats_t *formats)
 
 bool Capture::initCamera()
 {
+  LOGD("init camera %s", m_dev_vedio.c_str());
   m_camera = camera_open(m_dev_vedio.c_str());
   if (!m_camera)
   {
@@ -474,6 +475,11 @@ bool Capture::initCamera()
   }
   if (!camera_start(m_camera))
     return false;
+  LOGD("init camera finish");
+  camera_format_t config;
+  camera_config_get(m_camera, &config);
+  LOGD("get camera width %d", config.width);
+  LOGD("get camera height %d", config.height);
   return true;
 }
 bool Capture::setCamera(UVC_FORMAT _format, unsigned int _width, unsigned int _height, unsigned int _fps)
@@ -483,6 +489,9 @@ bool Capture::setCamera(UVC_FORMAT _format, unsigned int _width, unsigned int _h
   {
   case MJPG_FORMAT:
     config = camera_format_t{1196444237, _width, _height, {1, _fps}};
+    LOGD("set camera MJPG");
+    LOGD("set camera width %d", config.width);
+    LOGD("set camera height %d", config.height);
     if (!camera_config_set(m_camera, &config))
       return false;
     if (!camera_config_get(m_camera, &config))
@@ -500,6 +509,9 @@ bool Capture::setCamera(UVC_FORMAT _format, unsigned int _width, unsigned int _h
   default:
     break;
   }
+  LOGD("get camera width %d", config.width);
+  LOGD("get camera height %d", config.height);
+  LOGD("set camera finish");
   return true;
 }
 
@@ -532,6 +544,11 @@ int Capture::captureMat(cv::Mat &_image)
   for (size_t i = 0; i < m_camera->head.length; i++)
   {
     data.push_back(m_camera->head.start[i]);
+  }
+  if (data.size() < 100 && m_camera->head.length == data.size())
+  {
+    LOGD("%d %d", m_camera->head.length, data.size());
+    return -1;
   }
 
   _image = cv::imdecode(data, cv::IMREAD_COLOR);

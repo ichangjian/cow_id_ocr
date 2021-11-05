@@ -16,7 +16,7 @@
 #include <fcntl.h>
 #define closesocket close
 #endif
-
+#include "../log/log.h"
 #include <thread>
 #define uchar unsigned char
 
@@ -67,7 +67,7 @@ struct CowID
     //4、00 00：备用                                                       2字节
     uchar reserve2[2] = {0x02, 0x00};
     //5、19 12 10 14 14 23 ：设备上报数据时间，日期格式”yy MM dd HH mm ss”,十进制                                                                       6字节
-    uchar date[6]={0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    uchar date[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     //6、00 00 00 00 00 00 00 00 00 00 00 00：牛号,16进制               12字节
     uchar id[12]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     //7、00 00 00 00 ：备用                                              4字节
@@ -174,7 +174,7 @@ unsigned int do_CRC(unsigned char *p, unsigned char n)
 {
     uchar uchCRCHi = 0xFF; /* ¸ßCRC×Ö½Ú³õÊ¼»¯ */
     uchar uchCRCLo = 0xFF; /* µÍCRC ×Ö½Ú³õÊ¼»¯ */
-    unsigned long uIndex;          /* CRCÑ­»·ÖÐµÄË÷Òý */
+    unsigned long uIndex;  /* CRCÑ­»·ÖÐµÄË÷Òý */
     while (n--)            /* ´«ÊäÏûÏ¢»º³åÇø */
     {
         uIndex = uchCRCHi ^ *p++; /* ¼ÆËãCRC */
@@ -385,21 +385,22 @@ bool NetUDP::sendHeartbeat()
 
     getCurrentTime(hb.date);
     RamAdjust((uchar *)(&hb), sizeof(hb) - 2);
-    std::cout << std::hex << int(hb.CRC[0]) << int(hb.CRC[1]) << "\n";
-    for (size_t i = 0; i < sizeof(hb); i++)
-    {
-        std::cout << std::hex << int(((char *)(&hb))[i]) << " ";
-    }
-    std::cout << "\n";
-
+    // std::cout << std::hex << int(hb.CRC[0]) << int(hb.CRC[1]) << "\n";
+    // for (size_t i = 0; i < sizeof(hb); i++)
+    // {
+    //     std::cout << std::hex << int(((char *)(&hb))[i]) << " ";
+    // }
+    // std::cout << "\n";
+    LOGD("HB send");
     if (Send((char *)(&hb), sizeof(hb)) != sizeof(hb))
         return false;
     reply rp;
     Recv((char *)(&rp), sizeof(rp));
-    for (size_t i = 0; i < sizeof(rp); i++)
-    {
-        std::cout << std::hex << int(((char *)(&rp))[i]) << " ";
-    }
+    LOGD("HB Recv %c%c", rp.answer[0], rp.answer[1]);
+    // for (size_t i = 0; i < sizeof(rp); i++)
+    // {
+    //     std::cout << std::hex << int(((char *)(&rp))[i]) << " ";
+    // }
     return true;
 }
 
@@ -407,12 +408,12 @@ bool NetUDP::sendCowID(std::string id)
 {
     CowID cowid;
     getCurrentTime(cowid.date);
-    for (size_t i = 0; i < sizeof(cowid.date); i++)
-    {
-        char* ind=(char *)(cowid.date);
-        std::cout << std::hex << int(ind[i]) << " ";
-    }
-    std::cout << "\n";
+    // for (size_t i = 0; i < sizeof(cowid.date); i++)
+    // {
+    //     char *ind = (char *)(cowid.date);
+    //     std::cout << std::hex << int(ind[i]) << " ";
+    // }
+    // std::cout << "\n";
     std::vector<int> id_hex;
 
     for (int i = id.length() - 1; i >= 0; i = i - 2)
@@ -434,28 +435,29 @@ bool NetUDP::sendCowID(std::string id)
         cowid.id[sizeof(cowid.id) - i - 1] = id_hex[i];
     }
 
-    for (size_t i = 0; i < sizeof(cowid.id); i++)
-    {
-        std::cout << std::hex << int(((char *)(cowid.id))[i]) << " ";
-    }
-    std::cout << "\n";
+    // for (size_t i = 0; i < sizeof(cowid.id); i++)
+    // {
+    //     std::cout << std::hex << int(((char *)(cowid.id))[i]) << " ";
+    // }
+    // std::cout << "\n";
 
     RamAdjust((uchar *)(&cowid), sizeof(cowid) - 2);
-    std::cout << std::hex << int(cowid.CRC[0]) << int(cowid.CRC[1]) << "\n";
-    for (size_t i = 0; i < sizeof(cowid); i++)
-    {
-        std::cout << std::hex << int(((char *)(&cowid))[i]) << " ";
-    }
-    std::cout << "\n";
-
+    // std::cout << std::hex << int(cowid.CRC[0]) << int(cowid.CRC[1]) << "\n";
+    // for (size_t i = 0; i < sizeof(cowid); i++)
+    // {
+    //     std::cout << std::hex << int(((char *)(&cowid))[i]) << " ";
+    // }
+    // std::cout << "\n";
+    LOGD("ID send %s",id.c_str());
     if (Send((char *)(&cowid), sizeof(cowid)) != sizeof(cowid))
         return false;
     reply rp;
     Recv((char *)(&rp), sizeof(rp));
-    for (size_t i = 0; i < sizeof(rp); i++)
-    {
-        std::cout << std::hex << int(((char *)(&rp))[i]) << " ";
-    }
-    std::cout << "\n";
+    LOGD("ID Recv %c%c", rp.answer[0], rp.answer[1]);
+    // for (size_t i = 0; i < sizeof(rp); i++)
+    // {
+    //     std::cout << std::hex << int(((char *)(&rp))[i]) << " ";
+    // }
+    // std::cout << "\n";
     return true;
 }

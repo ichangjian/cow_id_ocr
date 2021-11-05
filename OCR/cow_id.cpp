@@ -103,13 +103,16 @@ bool COWID::getCowID(const cv::Mat &_image, std::string &_id)
         if (center_y < m_font_height_u && center_y > m_font_height_d)
         {
             rect_num.push_back(rect);
-
+#ifdef SHOW_IMAGE
             cv::rectangle(image, rect, cv::Scalar(255, 0, 0), 5, 8);
         }
 
         cv::drawContours(image, contours, i, cv::Scalar(255, 255, 255), 5, 8);
     }
-
+#else
+        }
+    }
+#endif
     sortPosition(rect_num);
     _id = "";
     for (size_t i = 0; i < rect_num.size(); i++)
@@ -118,7 +121,7 @@ bool COWID::getCowID(const cv::Mat &_image, std::string &_id)
         // Mat W = RGB[1] > 220;
         int num = numberOCR(W(rect));
         _id += std::to_string(num);
-        // std::cout << num << "\n";
+#ifdef SHOW_IMAGE
         cv::putText(image, std::to_string(num), cv::Point(rect.x, rect.y), 1, 5, cv::Scalar(0, 0, 255), 3);
         cv::imshow("Cow ID", image);
         if (num == -2)
@@ -131,6 +134,13 @@ bool COWID::getCowID(const cv::Mat &_image, std::string &_id)
     }
     cv::imshow("Cow ID", image);
     cv::waitKey(10);
+#else
+        if (num == -2)
+        {
+            return false;
+        }
+    }
+#endif
     // waitKey(0);
     // cv::imwrite("ocr.png", image);
     return true;
@@ -239,7 +249,7 @@ int COWID::numberOCR(cv::Mat n)
     }
     else
     {
-        ;// printf("[error_%d_%d_%d_%d_%d_%d_%d]", a, b, c, d, e, f, g);
+        ; // printf("[error_%d_%d_%d_%d_%d_%d_%d]", a, b, c, d, e, f, g);
     }
     return num;
 }
