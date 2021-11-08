@@ -69,7 +69,7 @@ if(OpenCV_FOUND)
     include_directories(log)
     include_directories(UVC)
     include_directories(SDK)
-    include_directories(net)
+    include_directories(NET)
     
     include_directories(${OpenCV_INCLUDE_DIRS})
     
@@ -77,10 +77,10 @@ if(OpenCV_FOUND)
     target_link_libraries(runner ${OpenCV_LIBRARIES})
 
     IF (CMAKE_SYSTEM_NAME MATCHES "Windows")
-        add_executable(rec_cow_id sample/demo.cpp OCR/cow_id.cpp  net/net.cpp SDK/cow_sdk.cpp )
+        add_executable(rec_cow_id sample/demo.cpp OCR/cow_id.cpp  NET/net.cpp SDK/cow_sdk.cpp )
         target_link_libraries(rec_cow_id ${OpenCV_LIBRARIES} ${Android_log} ${WIN_SCT})
     ELSE ()
-        add_executable(rec_cow_id sample/demo.cpp OCR/cow_id.cpp UVC/capture.cpp net/net.cpp SDK/cow_sdk.cpp)
+        add_executable(rec_cow_id sample/demo.cpp OCR/cow_id.cpp UVC/capture.cpp NET/net.cpp SDK/cow_sdk.cpp)
         target_link_libraries(rec_cow_id ${OpenCV_LIBRARIES} ${Android_log})
 
         add_executable(cap sample/mjpg2mat.cpp UVC/capture.cpp)

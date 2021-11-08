@@ -1,5 +1,5 @@
 #include "../log/log.h"
-#include "../net/net.hpp"
+#include "../NET/net.hpp"
 #include "../UVC/capture.hpp"
 #include "../OCR/cow_id.hpp"
 #include <string>
