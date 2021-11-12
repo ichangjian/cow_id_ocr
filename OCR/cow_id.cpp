@@ -1,5 +1,5 @@
 #include "cow_id.hpp"
-
+#include "../log/log.h"
 COWID::COWID(/* args */)
 {
     m_init_flag = false;
@@ -74,7 +74,7 @@ bool COWID::getCowID(const cv::Mat &_image, std::string &_id)
 {
 
     cv::Mat image = getDisplayRegion(_image(m_display_roi));
-    cv::fastNlMeansDenoisingColored(image, image, 15, 3);
+    //    cv::fastNlMeansDenoisingColored(image, image, 15, 3);
     if (image.empty() && image.channels() == 3)
     {
         return false;
@@ -85,8 +85,11 @@ bool COWID::getCowID(const cv::Mat &_image, std::string &_id)
 
     cv::Mat G;
     // std::cout<<m_pen_width<<"\n";
+    LOGD("========= a");
+    cv::fastNlMeansDenoising(RGB[1], G, 15, 1);
+    LOGD("=========b");
     m_pen_width=3;
-    cv::dilate(RGB[1], G, cv::Mat(m_pen_width, m_pen_width, CV_8UC1, cv::Scalar(1)));
+    cv::dilate(G, G, cv::Mat(m_pen_width, m_pen_width, CV_8UC1, cv::Scalar(1)));
 
     cv::Mat W = G > m_green_threshold;
     // cv::imwrite("w.png", W);

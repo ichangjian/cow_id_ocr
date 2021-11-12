@@ -204,7 +204,7 @@ std::string COW::recogizeImage(const cv::Mat &_image)
                     m_change_id = id;
                     m_change_num = 0;
                 }
-                if (m_change_num > 2)
+                if (m_change_num > 1)
                 {
                     m_send_id_flag = true;
                     std::cout << m_id_que.back() << " " << id << "\n";
