@@ -84,6 +84,8 @@ bool COWID::getCowID(const cv::Mat &_image, std::string &_id)
     cv::split(image, RGB);
 
     cv::Mat G;
+    // std::cout<<m_pen_width<<"\n";
+    m_pen_width=3;
     cv::dilate(RGB[1], G, cv::Mat(m_pen_width, m_pen_width, CV_8UC1, cv::Scalar(1)));
 
     cv::Mat W = G > m_green_threshold;
