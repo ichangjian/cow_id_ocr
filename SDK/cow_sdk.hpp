@@ -9,6 +9,8 @@
 class COW
 {
 private:
+    int m_change_num;
+    std::string m_change_id;
     std::string m_corner_file;
     int m_camera_index;
     std::string m_camera_file;
@@ -26,7 +28,7 @@ private:
     std::atomic<bool> m_release_flag;
     cv::VideoCapture m_cap;
 #ifdef _ANDROID_
-   Capture *m_cap_uvc;
+    Capture *m_cap_uvc;
 #endif
     std::list<std::string> m_id_que;
     bool m_send_id_flag;

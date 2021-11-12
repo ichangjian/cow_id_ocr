@@ -13,6 +13,8 @@ COW::COW(std::string _file)
     m_send_id_flag = true;
     m_release_flag = false;
     m_heartbeat_slp = 60;
+    m_change_num = 0;
+    m_change_id = "";
 #ifdef _ANDROID_
     m_window_size = 3;
 #else
@@ -194,10 +196,21 @@ std::string COW::recogizeImage(const cv::Mat &_image)
             }
             else
             {
-                m_send_id_flag = true;
-                std::cout << m_id_que.back() << " " << id << "\n";
-                m_id_que.pop_front();
-                m_id_que.push_back(id);
+                std::cout<<m_change_num<<" "<<m_change_id<<" "<<id<<"\n";
+                if (m_change_id == id)
+                    m_change_num++;
+                else
+                {
+                    m_change_id = id;
+                    m_change_num = 0;
+                }
+                if (m_change_num > 2)
+                {
+                    m_send_id_flag = true;
+                    std::cout << m_id_que.back() << " " << id << "\n";
+                    m_id_que.pop_front();
+                    m_id_que.push_back(id);
+                }
             }
         }
     }
@@ -217,6 +230,7 @@ std::string COW::recogizeImage(const cv::Mat &_image)
     }
     if (idx == m_window_size)
     {
+        m_change_num = 0;
         LOGD("%s OK", id.c_str());
         m_send_id_flag = false;
         return id;
