@@ -74,7 +74,7 @@ bool COWID::getCowID(const cv::Mat &_image, std::string &_id)
 {
 
     cv::Mat image = getDisplayRegion(_image(m_display_roi));
-
+    cv::fastNlMeansDenoisingColored(image, image, 15, 3);
     if (image.empty() && image.channels() == 3)
     {
         return false;
