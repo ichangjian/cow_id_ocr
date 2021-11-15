@@ -85,10 +85,9 @@ bool COWID::getCowID(const cv::Mat &_image, std::string &_id)
 
     cv::Mat G;
     // std::cout<<m_pen_width<<"\n";
-    LOGD("========= a");
-    cv::fastNlMeansDenoising(RGB[1], G, 15, 1);
-    LOGD("=========b");
-    m_pen_width=3;
+    cv::GaussianBlur(RGB[1], G, cv::Size(m_pen_width, m_pen_width), 5);
+    // cv::fastNlMeansDenoising(RGB[1], G, 15, 1);
+    // m_pen_width=3;
     cv::dilate(G, G, cv::Mat(m_pen_width, m_pen_width, CV_8UC1, cv::Scalar(1)));
 
     cv::Mat W = G > m_green_threshold;
@@ -142,6 +141,13 @@ bool COWID::getCowID(const cv::Mat &_image, std::string &_id)
 #else
         if (num == -2)
         {
+            if (__SAVE_DATA__>1)
+            {
+                if (save_index < 1000)
+                {
+                    cv::imwrite("/sdcard/Download/temp/error_" + std::to_string(save_index++) + ".jpg", image);
+                }
+            }
             return false;
         }
     }

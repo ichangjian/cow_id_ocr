@@ -83,6 +83,14 @@ bool COW::sendHeartbeat()
                         m_heartbeat_flag = true;
                         LOGD("heartbeat wake up");
                     }
+                    if (__SAVE_DATA__ > 1)
+                    {
+                        cv::Mat image = captureImage();
+                        if (!image.empty())
+                        {
+                            cv::imwrite("/sdcard/Download/image/" + std::to_string(getCurrentTime()) + ".jpg", image);
+                        }
+                    }
                 }
             }
             else
@@ -116,6 +124,7 @@ bool COW::sendCowID()
                 cv::Mat image = captureImage();
                 if (image.empty())
                 {
+                    LOGD("image empty");
                     continue;
                 }
                 else
@@ -126,6 +135,10 @@ bool COW::sendCowID()
                         if (!m_test_model)
                         {
                             m_client.sendCowID(id);
+                        }
+                        if (__SAVE_DATA__ > 1)
+                        {
+                            cv::imwrite("/sdcard/Download/send/" + std::to_string(getCurrentTime()) + "_" + id + ".jpg", image);
                         }
                     }
                     else
@@ -155,6 +168,7 @@ bool COW::sendCowID()
 cv::Mat COW::captureImage()
 {
     // LOGD("capture image");
+    m_mtx_capture.lock();
     cv::Mat image;
     if (m_test_model)
     {
@@ -163,6 +177,7 @@ cv::Mat COW::captureImage()
         {
             LOGD("finish video %s", m_video_file.c_str());
             release();
+            m_mtx_capture.unlock();
             return cv::Mat();
         }
     }
@@ -175,6 +190,7 @@ cv::Mat COW::captureImage()
         m_cap >> image;
 #endif
     }
+    m_mtx_capture.unlock();
     return image;
 }
 
@@ -196,7 +212,7 @@ std::string COW::recogizeImage(const cv::Mat &_image)
             }
             else
             {
-                std::cout<<m_change_num<<" "<<m_change_id<<" "<<id<<"\n";
+                std::cout << m_change_num << " " << m_change_id << " " << id << "\n";
                 if (m_change_id == id)
                     m_change_num++;
                 else

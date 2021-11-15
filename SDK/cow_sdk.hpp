@@ -34,6 +34,7 @@ private:
     bool m_send_id_flag;
     cv::Mat captureImage();
     std::string recogizeImage(const cv::Mat &_image);
+    std::mutex m_mtx_capture;
 
     bool run();
     bool sendHeartbeat();
