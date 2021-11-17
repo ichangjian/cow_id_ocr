@@ -210,6 +210,7 @@ RESET:
             fs << "version" << 1.0;
             fs << "time" << getCT();
             fs << "camera" << 0;
+            fs << "cow_pen" << 1;
             fs << "LUX" << conersSrcPosition[0].x;
             fs << "LUY" << conersSrcPosition[0].y;
             fs << "LDX" << conersSrcPosition[1].x;

@@ -11,15 +11,19 @@ private:
     int m_font_height_d;
     int m_pen_width;
     int m_green_threshold;
+    int m_red_threshold;
     std::vector<cv::Point2f> m_corner_src;
     cv::Size m_roi_size;
     cv::Mat m_pose;
     bool m_init_flag;
+    bool m_pen_flag;
 
     cv::Mat getDisplayRegion(const cv::Mat &_image);
     bool static compare(const cv::Rect &_a, const cv::Rect &_b);
     void sortPosition(std::vector<cv::Rect> &_rect);
     int numberOCR(cv::Mat n);
+    bool frontRed(const cv::Mat &_R, std::string &_id);
+    bool backGreen(const cv::Mat &_G, std::string &_id);
 
 public:
     COWID(/* args */);

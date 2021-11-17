@@ -134,7 +134,17 @@ bool COW::sendCowID()
                     {
                         if (!m_test_model)
                         {
-                            m_client.sendCowID(id);
+                            size_t idex = id.find('#');
+                            if (idex != std::string::npos)
+                            {
+                                std::string r_id = id.substr(0, idex);
+                                std::string g_id = id.substr(idex + 1, id.length() - idex - 1);
+                                m_client.sendCowIDPen(g_id, r_id);
+                            }
+                            else
+                            {
+                                m_client.sendCowID(id);
+                            }
                         }
                         if (__SAVE_DATA__ > 1)
                         {

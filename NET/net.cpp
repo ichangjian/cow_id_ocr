@@ -403,6 +403,63 @@ bool NetUDP::sendHeartbeat()
     // }
     return true;
 }
+bool NetUDP::sendCowIDPen(std::string id, std::string pen)
+{
+    CowID cowid;
+    getCurrentTime(cowid.date);
+    cowid.reserve2[0] = 0x03;
+
+    std::vector<int> id_hex;
+    std::vector<int> pen_hex;
+
+    for (int i = id.length() - 1; i >= 0; i = i - 2)
+    {
+        int num = 0;
+        if (i == 0)
+        {
+            num = id[i] - 48;
+        }
+        else
+        {
+            num = (id[i - 1] - 48) * 16;
+            num += id[i] - 48;
+        }
+        id_hex.push_back(num);
+    }
+    for (size_t i = 0; i < id_hex.size(); i++)
+    {
+        cowid.id[sizeof(cowid.id) - i - 1] = id_hex[i];
+    }
+
+    for (int i = pen.length() - 1; i >= 0; i = i - 2)
+    {
+        int num = 0;
+        if (i == 0)
+        {
+            num = pen[i] - 48;
+        }
+        else
+        {
+            num = (pen[i - 1] - 48) * 16;
+            num += pen[i] - 48;
+        }
+        pen_hex.push_back(num);
+    }
+    for (size_t i = 0; i < pen_hex.size(); i++)
+    {
+        cowid.reserve4[sizeof(cowid.reserve4) - i - 1] = pen_hex[i];
+    }
+
+    RamAdjust((uchar *)(&cowid), sizeof(cowid) - 2);
+
+    LOGD("ID send %s %s", pen.c_str(), id.c_str());
+    if (Send((char *)(&cowid), sizeof(cowid)) != sizeof(cowid))
+        return false;
+    reply rp;
+    Recv((char *)(&rp), sizeof(rp));
+    LOGD("ID Recv %c%c", rp.answer[0], rp.answer[1]);
+    return true;
+}
 
 bool NetUDP::sendCowID(std::string id)
 {
@@ -448,7 +505,7 @@ bool NetUDP::sendCowID(std::string id)
     //     std::cout << std::hex << int(((char *)(&cowid))[i]) << " ";
     // }
     // std::cout << "\n";
-    LOGD("ID send %s",id.c_str());
+    LOGD("ID send %s", id.c_str());
     if (Send((char *)(&cowid), sizeof(cowid)) != sizeof(cowid))
         return false;
     reply rp;

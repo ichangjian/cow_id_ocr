@@ -3,7 +3,9 @@
 COWID::COWID(/* args */)
 {
     m_init_flag = false;
-    m_green_threshold = 220;
+    m_green_threshold = 230;
+    m_red_threshold = 230;
+    m_pen_flag = false;
     // initROI("../corner1.yaml");
 }
 
@@ -16,8 +18,8 @@ bool COWID::initROI(const std::string &_file_yaml)
     cv::FileStorage fs(_file_yaml, cv::FileStorage::READ);
 
     m_corner_src.clear();
-    m_corner_src.push_back(cv::Point2f(fs["MUX"], fs["MUY"]));
-    m_corner_src.push_back(cv::Point2f(fs["MDX"], fs["MDY"]));
+    m_corner_src.push_back(cv::Point2f(fs["LUX"], fs["LUY"]));
+    m_corner_src.push_back(cv::Point2f(fs["LDX"], fs["LDY"]));
     m_corner_src.push_back(cv::Point2f(fs["RDX"], fs["RDY"]));
     m_corner_src.push_back(cv::Point2f(fs["RUX"], fs["RUY"]));
 
@@ -82,13 +84,108 @@ bool COWID::getCowID(const cv::Mat &_image, std::string &_id)
 
     cv::Mat RGB[3];
     cv::split(image, RGB);
+    std::string r_id, g_id;
+    if (!frontRed(RGB[0](cv::Rect(0, 0, image.cols / 2, image.rows)), r_id))
+    {
+        return false;
+    }
+    if (!backGreen(RGB[1](cv::Rect(image.cols / 2, 0, image.cols / 2 - 1, image.rows)), g_id))
+    {
+        return false;
+    }
+    _id = r_id + "#" + g_id;
 
-    cv::Mat G;
+    return true;
+}
+
+bool COWID::frontRed(const cv::Mat &_R, std::string &_id)
+{
+    cv::Mat R;
+    cv::Mat image;
+    cv::cvtColor(_R, image, cv::COLOR_GRAY2BGR);
+
     // std::cout<<m_pen_width<<"\n";
-    cv::GaussianBlur(RGB[1], G, cv::Size(m_pen_width, m_pen_width), 5);
+    // cv::GaussianBlur(_R, R, cv::Size(m_pen_width, m_pen_width), 5);
     // cv::fastNlMeansDenoising(RGB[1], G, 15, 1);
     // m_pen_width=3;
-    cv::dilate(G, G, cv::Mat(m_pen_width, m_pen_width, CV_8UC1, cv::Scalar(1)));
+    cv::dilate(_R, R, cv::Mat(m_pen_width, m_pen_width, CV_8UC1, cv::Scalar(1)));
+
+    cv::Mat W = R > m_red_threshold;
+    // cv::imwrite("w.png", W);
+    std::vector<std::vector<cv::Point>> contours;
+    std::vector<cv::Vec4i> hierarcy;
+    cv::findContours(W, contours, hierarcy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+    static int save_index = 0;
+    std::vector<cv::Rect> rect_num;
+    for (int i = 0; i < contours.size(); i++)
+    {
+        cv::Rect rect = cv::boundingRect(contours[i]);
+        int center_y = rect.height;
+        int center_x = rect.width;
+        // std::cout << m_font_height_d << " " << m_font_height_u << " " << center_y << "\n";
+
+        if ( center_y > m_font_height_d)
+        {
+            rect_num.push_back(rect);
+#ifdef SHOW_IMAGE
+            cv::rectangle(image, rect, cv::Scalar(255, 0, 0), 5, 8);
+        }
+
+        cv::drawContours(image, contours, i, cv::Scalar(0, 255, 0), 5, 8);
+    }
+#else
+        }
+    }
+#endif
+    sortPosition(rect_num);
+    _id = "";
+    for (size_t i = 0; i < rect_num.size(); i++)
+    {
+        cv::Rect rect = rect_num[i];
+        // Mat W = RGB[1] > 220;
+        int num = numberOCR(W(rect));
+        _id += std::to_string(num);
+#ifdef SHOW_IMAGE
+        cv::putText(image, std::to_string(num), cv::Point(rect.x, rect.y), 1, 5, cv::Scalar(0, 0, 255), 3);
+        cv::imshow("Cow Pen", image);
+        if (num == -2)
+        {
+            cv::imwrite("./temp/error_r_" + std::to_string(save_index++) + ".png", image);
+            return false;
+        }
+
+        // cv::waitKey(30);
+    }
+    cv::imshow("Cow Pen", image);
+    cv::waitKey(10);
+#else
+        if (num == -2)
+        {
+            if (__SAVE_DATA__ > 1)
+            {
+                if (save_index < 1000)
+                {
+                    cv::imwrite("/sdcard/Download/temp/error_r_" + std::to_string(save_index++) + ".jpg", image);
+                }
+            }
+            return false;
+        }
+    }
+#endif
+    // waitKey(0);
+    // cv::imwrite("ocr.png", image);
+    return true;
+}
+bool COWID::backGreen(const cv::Mat &_G, std::string &_id)
+{
+    cv::Mat G;
+    cv::Mat image;
+    cv::cvtColor(_G, image, cv::COLOR_GRAY2BGR);
+    // std::cout<<m_pen_width<<"\n";
+    m_pen_width=7;
+    // cv::GaussianBlur(_G, G, cv::Size(m_pen_width, m_pen_width), 5);
+    // cv::fastNlMeansDenoising(RGB[1], G, 15, 1);
+    cv::dilate(_G, G, cv::Mat(m_pen_width, m_pen_width, CV_8UC1, cv::Scalar(1)));
 
     cv::Mat W = G > m_green_threshold;
     // cv::imwrite("w.png", W);
@@ -111,7 +208,7 @@ bool COWID::getCowID(const cv::Mat &_image, std::string &_id)
             cv::rectangle(image, rect, cv::Scalar(255, 0, 0), 5, 8);
         }
 
-        cv::drawContours(image, contours, i, cv::Scalar(255, 255, 255), 5, 8);
+        cv::drawContours(image, contours, i, cv::Scalar(0, 255, 0), 5, 8);
     }
 #else
         }
@@ -130,7 +227,7 @@ bool COWID::getCowID(const cv::Mat &_image, std::string &_id)
         cv::imshow("Cow ID", image);
         if (num == -2)
         {
-            cv::imwrite("./temp/error_" + std::to_string(save_index++) + ".png", image);
+            cv::imwrite("./temp/error_g_" + std::to_string(save_index++) + ".png", image);
             return false;
         }
 
@@ -141,11 +238,11 @@ bool COWID::getCowID(const cv::Mat &_image, std::string &_id)
 #else
         if (num == -2)
         {
-            if (__SAVE_DATA__>1)
+            if (__SAVE_DATA__ > 1)
             {
                 if (save_index < 1000)
                 {
-                    cv::imwrite("/sdcard/Download/temp/error_" + std::to_string(save_index++) + ".jpg", image);
+                    cv::imwrite("/sdcard/Download/temp/error_g_" + std::to_string(save_index++) + ".jpg", image);
                 }
             }
             return false;

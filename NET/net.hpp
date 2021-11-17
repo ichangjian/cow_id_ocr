@@ -23,6 +23,7 @@ public:
     void getCurrentTime(unsigned char utc[6]);
     bool sendHeartbeat();
     bool sendCowID(std::string id);
+    bool sendCowIDPen(std::string id, std::string pen);
 };
 
 #endif
