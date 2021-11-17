@@ -17,6 +17,17 @@ bool COWID::initROI(const std::string &_file_yaml)
 {
     cv::FileStorage fs(_file_yaml, cv::FileStorage::READ);
 
+    if (!fs.isOpened())
+    {
+        LOGD("cant open %s", _file_yaml.c_str());
+        return false;
+    }
+    int pen = fs["cow_pen"];
+    if (pen > 0)
+    {
+        m_pen_flag = true;
+    }
+
     m_corner_src.clear();
     m_corner_src.push_back(cv::Point2f(fs["LUX"], fs["LUY"]));
     m_corner_src.push_back(cv::Point2f(fs["LDX"], fs["LDY"]));
@@ -84,16 +95,24 @@ bool COWID::getCowID(const cv::Mat &_image, std::string &_id)
 
     cv::Mat RGB[3];
     cv::split(image, RGB);
-    std::string r_id, g_id;
-    if (!frontRed(RGB[0](cv::Rect(0, 0, image.cols / 2, image.rows)), r_id))
+    if (m_pen_flag)
     {
-        return false;
+        std::string r_id, g_id;
+        if (!frontRed(RGB[0](cv::Rect(0, 0, image.cols / 2, image.rows)), r_id))
+        {
+            return false;
+        }
+        if (!backGreen(RGB[1](cv::Rect(image.cols / 2, 0, image.cols / 2 - 1, image.rows)), g_id))
+        {
+            return false;
+        }
+        if (g_id.length() > 0 && g_id[0] != '0')
+            _id = r_id + "#" + g_id;
     }
-    if (!backGreen(RGB[1](cv::Rect(image.cols / 2, 0, image.cols / 2 - 1, image.rows)), g_id))
+    else
     {
-        return false;
+        return backGreen(RGB[1](cv::Rect(image.cols / 2, 0, image.cols / 2 - 1, image.rows)), _id);
     }
-    _id = r_id + "#" + g_id;
 
     return true;
 }
@@ -109,13 +128,14 @@ bool COWID::frontRed(const cv::Mat &_R, std::string &_id)
     // cv::fastNlMeansDenoising(RGB[1], G, 15, 1);
     // m_pen_width=3;
     cv::dilate(_R, R, cv::Mat(m_pen_width, m_pen_width, CV_8UC1, cv::Scalar(1)));
+    static int save_index = 0;
 
     cv::Mat W = R > m_red_threshold;
     // cv::imwrite("w.png", W);
+    // cv::imwrite("./temp/error_rw_" + std::to_string(save_index++) + ".png", W);
     std::vector<std::vector<cv::Point>> contours;
     std::vector<cv::Vec4i> hierarcy;
     cv::findContours(W, contours, hierarcy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
-    static int save_index = 0;
     std::vector<cv::Rect> rect_num;
     for (int i = 0; i < contours.size(); i++)
     {
@@ -124,7 +144,7 @@ bool COWID::frontRed(const cv::Mat &_R, std::string &_id)
         int center_x = rect.width;
         // std::cout << m_font_height_d << " " << m_font_height_u << " " << center_y << "\n";
 
-        if ( center_y > m_font_height_d)
+        if (center_y > m_font_height_d)
         {
             rect_num.push_back(rect);
 #ifdef SHOW_IMAGE
@@ -182,17 +202,18 @@ bool COWID::backGreen(const cv::Mat &_G, std::string &_id)
     cv::Mat image;
     cv::cvtColor(_G, image, cv::COLOR_GRAY2BGR);
     // std::cout<<m_pen_width<<"\n";
-    m_pen_width=7;
+    m_pen_width = 7;
     // cv::GaussianBlur(_G, G, cv::Size(m_pen_width, m_pen_width), 5);
     // cv::fastNlMeansDenoising(RGB[1], G, 15, 1);
     cv::dilate(_G, G, cv::Mat(m_pen_width, m_pen_width, CV_8UC1, cv::Scalar(1)));
 
+    static int save_index = 0;
     cv::Mat W = G > m_green_threshold;
+    // cv::imwrite("./temp/error_gw_" + std::to_string(save_index++) + ".png", W);
     // cv::imwrite("w.png", W);
     std::vector<std::vector<cv::Point>> contours;
     std::vector<cv::Vec4i> hierarcy;
     cv::findContours(W, contours, hierarcy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
-    static int save_index = 0;
     std::vector<cv::Rect> rect_num;
     for (int i = 0; i < contours.size(); i++)
     {

@@ -15,6 +15,7 @@ COW::COW(std::string _file)
     m_heartbeat_slp = 60;
     m_change_num = 0;
     m_change_id = "";
+    m_last_send_id = "";
 #ifdef _ANDROID_
     m_window_size = 3;
 #else
@@ -137,13 +138,21 @@ bool COW::sendCowID()
                             size_t idex = id.find('#');
                             if (idex != std::string::npos)
                             {
-                                std::string r_id = id.substr(0, idex);
+                                std::string r_pen = id.substr(0, idex);
                                 std::string g_id = id.substr(idex + 1, id.length() - idex - 1);
-                                m_client.sendCowIDPen(g_id, r_id);
+                                if (m_last_send_id != g_id)
+                                {
+                                    m_last_send_id = g_id;
+                                    m_client.sendCowIDPen(g_id, r_pen);
+                                }
                             }
                             else
                             {
-                                m_client.sendCowID(id);
+                                if (m_last_send_id != id)
+                                {
+                                    m_last_send_id = id;
+                                    m_client.sendCowID(id);
+                                }
                             }
                         }
                         if (__SAVE_DATA__ > 1)

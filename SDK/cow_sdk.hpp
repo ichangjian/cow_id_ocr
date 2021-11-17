@@ -32,6 +32,7 @@ private:
 #endif
     std::list<std::string> m_id_que;
     bool m_send_id_flag;
+    std::string m_last_send_id;
     cv::Mat captureImage();
     std::string recogizeImage(const cv::Mat &_image);
     std::mutex m_mtx_capture;

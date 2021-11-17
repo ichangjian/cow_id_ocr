@@ -27,7 +27,7 @@
   } while (0)
 
 #endif
-static int __SAVE_DATA__ = 0;
+static int __SAVE_DATA__ = 10;
 class Reporter
 {
 public:
