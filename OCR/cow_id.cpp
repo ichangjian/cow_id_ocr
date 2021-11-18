@@ -177,7 +177,7 @@ bool COWID::frontRed(const cv::Mat &_R, std::string &_id)
         // cv::waitKey(30);
     }
     cv::imshow("Cow Pen", image);
-    cv::waitKey(10);
+    cv::waitKey(1);
 #else
         if (num == -2)
         {
@@ -255,7 +255,7 @@ bool COWID::backGreen(const cv::Mat &_G, std::string &_id)
         // cv::waitKey(30);
     }
     cv::imshow("Cow ID", image);
-    cv::waitKey(10);
+    cv::waitKey(1);
 #else
         if (num == -2)
         {

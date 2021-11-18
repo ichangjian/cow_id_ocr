@@ -24,6 +24,8 @@ private:
     int m_window_size;
     std::string m_video_file;
     std::thread m_measurement_heartbeat;
+    std::thread m_measurement_imagebuff;
+    std::thread m_measurement_idbuff;
     std::thread m_measurement_cowid;
     std::atomic<bool> m_release_flag;
     cv::VideoCapture m_cap;
@@ -37,11 +39,19 @@ private:
     std::string recogizeImage(const cv::Mat &_image);
     std::mutex m_mtx_capture;
 
+    std::queue<cv::Mat> m_image_buff;
+    std::queue<std::string> m_id_buff;
+    std::mutex m_mtx_image_buff;
+    std::mutex m_mtx_id_buff;
+    bool processImageBuff();
+    bool processIdBuff();
+
     bool run();
     bool sendHeartbeat();
     bool sendCowID();
     void threadSleep(int sec, int nsec);
     double getCurrentTime();
+    std::string getCurrentTimeString();
     void release();
 
 public:

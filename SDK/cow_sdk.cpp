@@ -24,6 +24,8 @@ COW::COW(std::string _file)
 
     m_measurement_heartbeat = std::thread(&COW::sendHeartbeat, this);
     m_measurement_cowid = std::thread(&COW::sendCowID, this);
+    m_measurement_imagebuff = std::thread(&COW::processIdBuff, this);
+    m_measurement_idbuff = std::thread(&COW::processImageBuff, this);
 }
 
 COW::~COW()
@@ -35,10 +37,19 @@ COW::~COW()
         LOGD("closing,wait %ds", m_heartbeat_slp);
         m_measurement_heartbeat.join();
     }
+    if (m_measurement_imagebuff.joinable())
+    {
+        m_measurement_imagebuff.join();
+    }
+    if (m_measurement_idbuff.joinable())
+    {
+        m_measurement_idbuff.join();
+    }
     if (m_measurement_cowid.joinable())
     {
         m_measurement_cowid.join();
     }
+    
 #ifdef _ANDROID_
     delete m_cap_uvc;
 #endif
@@ -48,6 +59,111 @@ void COW::release()
 {
     LOGD("release");
     m_release_flag = true;
+}
+bool COW::processImageBuff()
+{
+    try
+    {
+        while (true)
+        {
+            if (m_init_flag && m_open_camera_flag)
+            {
+                if (m_release_flag)
+                    break;
+                cv::Mat image = captureImage();
+                if (image.empty())
+                {
+                    LOGD("image empty");
+                    continue;
+                }
+                else
+                {
+                    m_mtx_image_buff.lock();
+                    m_image_buff.push(image);
+                    LOGD("push image buff size %d", m_image_buff.size());
+                    m_mtx_image_buff.unlock();
+                }
+            }
+            else
+            {
+                LOGD("image buff sleep for init");
+                threadSleep(0, 1E10);
+            }
+        } //while
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << e.what() << '\n';
+        LOGE("image buff crash");
+        return false;
+    }
+
+    return true;
+}
+
+bool COW::sendCowID()
+{
+    try
+    {
+        while (true)
+        {
+            if (m_init_flag)
+            {
+                if (m_release_flag)
+                    break;
+                std::string id;
+                m_mtx_id_buff.lock();
+                if (m_id_buff.size() > 0)
+                {
+                    id = m_id_buff.front();
+                    m_id_buff.pop();
+                    LOGD("pop id buff size %d", m_id_buff.size());
+                    m_mtx_id_buff.unlock();
+                }
+                else
+                {
+                    m_mtx_id_buff.unlock();
+                    threadSleep(0, 2E9);
+                }
+
+                if (!m_test_model && id.size() > 1)
+                {
+                    size_t idex = id.find('#');
+                    if (idex != std::string::npos)
+                    {
+                        std::string r_pen = id.substr(0, idex);
+                        std::string g_id = id.substr(idex + 1, id.length() - idex - 1);
+                        if (m_last_send_id != g_id)
+                        {
+                            m_last_send_id = g_id;
+                            m_client.sendCowIDPen(g_id, r_pen);
+                        }
+                    }
+                    else
+                    {
+                        if (m_last_send_id != id)
+                        {
+                            m_last_send_id = id;
+                            m_client.sendCowID(id);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                LOGD("send cowid sleep for init");
+                threadSleep(0, 1E9);
+            }
+        } //while
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << e.what() << '\n';
+        LOGE("cowid crash");
+        return false;
+    }
+
+    return true;
 }
 
 bool COW::sendHeartbeat()
@@ -89,7 +205,7 @@ bool COW::sendHeartbeat()
                         cv::Mat image = captureImage();
                         if (!image.empty())
                         {
-                            cv::imwrite("/sdcard/Download/image/" + std::to_string(getCurrentTime()) + ".jpg", image);
+                            cv::imwrite("/sdcard/Download/image/" + getCurrentTimeString() + ".jpg", image);
                         }
                     }
                 }
@@ -112,7 +228,7 @@ bool COW::sendHeartbeat()
     return true;
 }
 
-bool COW::sendCowID()
+bool COW::processIdBuff()
 {
     try
     {
@@ -122,42 +238,34 @@ bool COW::sendCowID()
             {
                 if (m_release_flag)
                     break;
-                cv::Mat image = captureImage();
-                if (image.empty())
+                cv::Mat image;
+                m_mtx_image_buff.lock();
+                if (m_image_buff.size() > 0)
                 {
-                    LOGD("image empty");
-                    continue;
+                    image = m_image_buff.front().clone();
+                    m_image_buff.front().release();
+                    m_image_buff.pop();
+                    LOGD("pop image buff size %d", m_image_buff.size());
+                    m_mtx_image_buff.unlock();
                 }
                 else
+                {
+                    m_mtx_image_buff.unlock();
+                    threadSleep(0, 0.3E9);
+                }
+
+                if (!image.empty())
                 {
                     std::string id = recogizeImage(image);
                     if (id.size() > 0)
                     {
-                        if (!m_test_model)
-                        {
-                            size_t idex = id.find('#');
-                            if (idex != std::string::npos)
-                            {
-                                std::string r_pen = id.substr(0, idex);
-                                std::string g_id = id.substr(idex + 1, id.length() - idex - 1);
-                                if (m_last_send_id != g_id)
-                                {
-                                    m_last_send_id = g_id;
-                                    m_client.sendCowIDPen(g_id, r_pen);
-                                }
-                            }
-                            else
-                            {
-                                if (m_last_send_id != id)
-                                {
-                                    m_last_send_id = id;
-                                    m_client.sendCowID(id);
-                                }
-                            }
-                        }
+                        m_mtx_id_buff.lock();
+                        m_id_buff.push(id);
+                        LOGD("push id buff size %d", m_id_buff.size());
+                        m_mtx_id_buff.unlock();
                         if (__SAVE_DATA__ > 1)
                         {
-                            cv::imwrite("/sdcard/Download/send/" + std::to_string(getCurrentTime()) + "_" + id + ".jpg", image);
+                            cv::imwrite("/sdcard/Download/send/" + getCurrentTimeString() + "_" + id + ".jpg", image);
                         }
                     }
                     else
@@ -168,16 +276,15 @@ bool COW::sendCowID()
             }
             else
             {
-                LOGD("cowid sleep for init");
+                LOGD("id buff sleep for init");
                 threadSleep(0, 0.1E9);
-                LOGD("cowid sleep for init2");
             }
         } //while
     }
     catch (const std::exception &e)
     {
         std::cerr << e.what() << '\n';
-        LOGE("cowid crash");
+        LOGE("id buff crash");
         return false;
     }
 
@@ -199,6 +306,7 @@ cv::Mat COW::captureImage()
             m_mtx_capture.unlock();
             return cv::Mat();
         }
+        cv::waitKey(30);
     }
     else
     {
@@ -284,7 +392,27 @@ void COW::threadSleep(int sec, int nsec)
     sleepTime.tv_nsec = nsec;
     nanosleep(&sleepTime, &returnTime);
 }
+std::string COW::getCurrentTimeString()
+{
+    time_t now = time(0);
+    tm *ltm = localtime(&now);
+    char buf[512];
+    strftime(buf, 64, "%Y-%m-%d-%H-%M-%S-", ltm);
 
+    int ms = 0;
+    {
+        std::chrono::system_clock::time_point now =
+            std::chrono::system_clock::now();
+        std::chrono::nanoseconds ns = now.time_since_epoch();
+        std::chrono::milliseconds millsec =
+            std::chrono::duration_cast<std::chrono::milliseconds>(ns);
+        std::chrono::seconds sec =
+            std::chrono::duration_cast<std::chrono::seconds>(ns);
+        ms = millsec.count() - sec.count() * 1000;
+    }
+    std::string ct(buf);
+    return ct + std::to_string(ms);
+}
 double COW::getCurrentTime()
 {
     std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
