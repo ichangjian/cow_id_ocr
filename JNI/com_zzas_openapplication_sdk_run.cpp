@@ -12,11 +12,15 @@ extern "C"
     try
     {
       LOGI("%s", cow.getVersion());
-      cow.init();
+      if (!cow.init())
+      {
+        cow.release();
+      }
       return 0;
     }
     catch (const std::exception &e)
     {
+      cow.release();
       LOGI("Exception: %s", e.what());
       return -1;
     }

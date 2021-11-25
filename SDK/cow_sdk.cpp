@@ -22,7 +22,7 @@ COW::COW(std::string _file)
     m_window_size = 4;
 #endif
 
-    m_measurement_heartbeat = std::thread(&COW::sendHeartbeat, this);
+    // m_measurement_heartbeat = std::thread(&COW::sendHeartbeat, this);
     m_measurement_cowid = std::thread(&COW::sendCowID, this);
     m_measurement_imagebuff = std::thread(&COW::processIdBuff, this);
     m_measurement_idbuff = std::thread(&COW::processImageBuff, this);
@@ -32,11 +32,11 @@ COW::~COW()
 {
     LOGD("end");
     m_release_flag = true;
-    if (m_measurement_heartbeat.joinable())
-    {
-        LOGD("closing,wait %ds", m_heartbeat_slp);
-        m_measurement_heartbeat.join();
-    }
+    // if (m_measurement_heartbeat.joinable())
+    // {
+    //     LOGD("closing,wait %ds", m_heartbeat_slp);
+    //     m_measurement_heartbeat.join();
+    // }
     if (m_measurement_imagebuff.joinable())
     {
         m_measurement_imagebuff.join();
@@ -49,7 +49,7 @@ COW::~COW()
     {
         m_measurement_cowid.join();
     }
-    
+
 #ifdef _ANDROID_
     delete m_cap_uvc;
 #endif
@@ -81,13 +81,18 @@ bool COW::processImageBuff()
                     m_mtx_image_buff.lock();
                     m_image_buff.push(image);
                     LOGD("push image buff size %d", m_image_buff.size());
+                    if (m_image_buff.size() > 10)
+                    {
+                        m_image_buff.pop();
+                    }
+
                     m_mtx_image_buff.unlock();
                 }
             }
             else
             {
                 LOGD("image buff sleep for init");
-                threadSleep(0, 1E10);
+                threadSleep(1, 0);
             }
         } //while
     }
@@ -105,17 +110,22 @@ bool COW::sendCowID()
 {
     try
     {
+        double heart_cur_tm = 0;
+        double save_cur_tm = 0;
+        long heart_spend_tm = 0;
+        long save_spend_tm = 0;
         while (true)
         {
             if (m_init_flag)
             {
                 if (m_release_flag)
                     break;
-                std::string id;
+
+                std::pair<time_t, std::string> time_id;
                 m_mtx_id_buff.lock();
                 if (m_id_buff.size() > 0)
                 {
-                    id = m_id_buff.front();
+                    time_id = m_id_buff.front();
                     m_id_buff.pop();
                     LOGD("pop id buff size %d", m_id_buff.size());
                     m_mtx_id_buff.unlock();
@@ -123,11 +133,12 @@ bool COW::sendCowID()
                 else
                 {
                     m_mtx_id_buff.unlock();
-                    threadSleep(0, 2E9);
+                    threadSleep(2, 0);
                 }
 
-                if (!m_test_model && id.size() > 1)
+                if (!m_test_model && time_id.second.size() > 1)
                 {
+                    std::string id = time_id.second;
                     size_t idex = id.find('#');
                     if (idex != std::string::npos)
                     {
@@ -136,7 +147,18 @@ bool COW::sendCowID()
                         if (m_last_send_id != g_id)
                         {
                             m_last_send_id = g_id;
-                            m_client.sendCowIDPen(g_id, r_pen);
+                            if (!m_client.sendCowIDPen(time_id.first, g_id, r_pen))
+                            {
+                                LOGD("send error %s", id.c_str());
+                                m_mtx_id_buff.lock();
+                                m_id_buff.push(time_id);
+                                // LOGD("push id buff size %d", m_id_buff.size());
+                                m_mtx_id_buff.unlock();
+                            }
+                            else
+                            {
+                                LOGD("send %s OK", id.c_str());
+                            }
                         }
                     }
                     else
@@ -144,7 +166,62 @@ bool COW::sendCowID()
                         if (m_last_send_id != id)
                         {
                             m_last_send_id = id;
-                            m_client.sendCowID(id);
+                            if (!m_client.sendCowIDPen(time_id.first, id, ""))
+                            {
+                                LOGD("send error %s", id.c_str());
+                                m_mtx_id_buff.lock();
+                                m_id_buff.push(time_id);
+                                // LOGD("push id buff size %d", m_id_buff.size());
+                                m_mtx_id_buff.unlock();
+                            }
+                            else
+                            {
+                                LOGD("send %s OK", id.c_str());
+                            }
+                        }
+                    }
+                }
+
+                if (m_heartbeat_flag)
+                {
+                    m_heartbeat_flag = false;
+                    LOGD("heartbeat send");
+                    heart_cur_tm = getCurrentTime();
+                    save_cur_tm = heart_cur_tm;
+                    if (!m_test_model)
+                    {
+                        m_client.sendHeartbeat();
+                        removeLogfile(7);
+                    }
+                }
+                else
+                {
+                    heart_spend_tm = getCurrentTime() - heart_cur_tm;
+                    if (heart_spend_tm > 10 * 60)
+                    {
+                        m_heartbeat_flag = true;
+                        LOGD("heartbeat wake up");
+                    }
+                    save_spend_tm = getCurrentTime() - save_cur_tm;
+                    if (save_spend_tm > 60)
+                    {
+                        save_cur_tm = getCurrentTime();
+                        if (__SAVE_DATA__ > 1)
+                        {
+                            cv::Mat image = captureImage();
+                            if (!image.empty())
+                            {
+                                cv::imwrite("/sdcard/Download/image/" + getCurrentTimeString() + ".jpg", image);
+                            }
+                        }
+                        else
+                        {
+                            static int save_image_index = 0;
+                            if (save_image_index < 100)
+                            {
+                                cv::Mat image = captureImage();
+                                cv::imwrite("/sdcard/Download/image/" + std::to_string(save_image_index++) + ".jpg", image);
+                            }
                         }
                     }
                 }
@@ -152,7 +229,7 @@ bool COW::sendCowID()
             else
             {
                 LOGD("send cowid sleep for init");
-                threadSleep(0, 1E9);
+                threadSleep(1, 0);
             }
         } //while
     }
@@ -208,6 +285,15 @@ bool COW::sendHeartbeat()
                             cv::imwrite("/sdcard/Download/image/" + getCurrentTimeString() + ".jpg", image);
                         }
                     }
+                    else
+                    {
+                        static int save_image_index = 0;
+                        if (save_image_index < 100)
+                        {
+                            cv::Mat image = captureImage();
+                            cv::imwrite("/sdcard/Download/image/" + std::to_string(save_image_index++) + ".jpg", image);
+                        }
+                    }
                 }
             }
             else
@@ -245,7 +331,7 @@ bool COW::processIdBuff()
                     image = m_image_buff.front().clone();
                     m_image_buff.front().release();
                     m_image_buff.pop();
-                    LOGD("pop image buff size %d", m_image_buff.size());
+                    // LOGD("pop image buff size %d", m_image_buff.size());
                     m_mtx_image_buff.unlock();
                 }
                 else
@@ -260,12 +346,21 @@ bool COW::processIdBuff()
                     if (id.size() > 0)
                     {
                         m_mtx_id_buff.lock();
-                        m_id_buff.push(id);
-                        LOGD("push id buff size %d", m_id_buff.size());
+                        m_id_buff.push(std::pair<time_t, std::string>(time(0), id));
+                        // LOGD("push id buff size %d", m_id_buff.size());
                         m_mtx_id_buff.unlock();
                         if (__SAVE_DATA__ > 1)
                         {
                             cv::imwrite("/sdcard/Download/send/" + getCurrentTimeString() + "_" + id + ".jpg", image);
+                        }
+                        else
+                        {
+                            static int save_send_index = 0;
+                            if (save_send_index < 100)
+                            {
+                                cv::putText(image, id, cv::Point(image.cols / 2, image.rows / 2), 1, 5, cv::Scalar(0, 0, 255), 3);
+                                cv::imwrite("/sdcard/Download/send/" + std::to_string(save_send_index++) + ".jpg", image);
+                            }
                         }
                     }
                     else
@@ -311,7 +406,7 @@ cv::Mat COW::captureImage()
     else
     {
 #ifdef _ANDROID_
-        LOGD("capture uvc image");
+        // LOGD("capture uvc image");
         m_cap_uvc->captureMat(image);
 #else
         m_cap >> image;
@@ -435,11 +530,11 @@ bool COW::init()
             LOGE("cant open %s", m_corner_file.c_str());
             return false;
         }
-        if (m_client.CreateSocket() < 0)
-        {
-            LOGE("Create socket failed");
-            return false;
-        }
+        // if (m_client.CreateSocket() < 0)
+        // {
+        //     LOGE("Create socket failed");
+        //     return false;
+        // }
         if (!m_ocr_id.initROI(m_corner_file))
         {
             LOGE("init OCR failed");
@@ -452,11 +547,39 @@ bool COW::init()
         if (!m_test_model)
         {
             std::string ip = fs["IP"];
+            std::string url = fs["URL"];
             int port = fs["port"];
-            LOGD("UDP connect %s:%d", ip.c_str(), port);
-            if (!m_client.Connect(ip.c_str(), port))
+            if (url.size() > 3)
             {
-                LOGE("UDP connect error");
+                LOGD("UDP connect %s:%d", url.c_str(), port);
+                if (!m_client.setURL(url.c_str(), port))
+                {
+                    LOGE("UDP connect error");
+                    return false;
+                }
+            }
+            else
+            {
+                LOGD("UDP connect %s:%d", ip.c_str(), port);
+                if (!m_client.setIP(ip.c_str(), port))
+                {
+                    LOGE("UDP connect error");
+                    return false;
+                }
+            }
+            std::string device_id = fs["deviceID"];
+            std::string gateway_id = fs["gatewayID"];
+            if (m_client.setDeviceID(device_id))
+            {
+                if (!m_client.setGatewayID(gateway_id))
+                {
+                    LOGD("init error gatewayID:%s.", gateway_id.c_str());
+                    return false;
+                }
+            }
+            else
+            {
+                LOGD("init error deviceID:%s.", device_id.c_str());
                 return false;
             }
         }
@@ -542,4 +665,33 @@ bool COW::openCamera()
     {
         return false;
     }
+}
+
+bool COW::checkFileExist(const std::string _path_file)
+{
+    std::ifstream file;
+    file.open(_path_file);
+    bool re = file.is_open();
+    file.close();
+    return re;
+}
+
+bool COW::removeLogfile(int _day)
+{
+    time_t now = time(0);
+    now -= _day * 24 * 60 * 60; //天时分秒
+    tm *ltm = localtime(&now);
+    char buf[512];
+#ifdef __ANDROID__
+    strftime(buf, 64, "/sdcard/Download/log_%Y-%m-%d.txt", ltm);
+#else
+    strftime(buf, 64, "./temp/log_%Y-%m-%d.txt", ltm);
+#endif
+    if (checkFileExist(buf))
+    {
+        LOGD("remove %s", buf);
+        remove(buf);
+    }
+
+    return true;
 }

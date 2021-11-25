@@ -224,7 +224,9 @@ RESET:
             fs << "RDY" << conersSrcPosition[2].y;
             fs << "RUX" << conersSrcPosition[3].x;
             fs << "RUY" << conersSrcPosition[3].y;
-            fs.writeComment("网关通信");
+            fs.writeComment("网络通信，URL和IP任选其一，URL不为空时优先使用");
+            fs << "URL"
+               << "";
             fs << "IP"
                << "111.113.25.66";
             fs << "port" << 18093;

@@ -106,7 +106,7 @@ bool COWID::getCowID(const cv::Mat &_image, std::string &_id)
         {
             return false;
         }
-        if (g_id.length() > 0 && g_id[0] != '0')
+        if (g_id.length() > 0) //&& g_id[0] != '0')
             _id = r_id + "#" + g_id;
     }
     else
@@ -181,7 +181,7 @@ bool COWID::frontRed(const cv::Mat &_R, std::string &_id)
 #else
         if (num == -2)
         {
-            if (__SAVE_DATA__ > 1)
+            // if (__SAVE_DATA__ > 1)
             {
                 if (save_index < 1000)
                 {
@@ -259,7 +259,7 @@ bool COWID::backGreen(const cv::Mat &_G, std::string &_id)
 #else
         if (num == -2)
         {
-            if (__SAVE_DATA__ > 1)
+            // if (__SAVE_DATA__ > 1)
             {
                 if (save_index < 1000)
                 {

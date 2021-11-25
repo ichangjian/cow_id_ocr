@@ -14,101 +14,31 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <netdb.h>
+#include <netinet/in.h>
 #define closesocket close
 #endif
 #include "../log/log.h"
 #include <thread>
-#define uchar unsigned char
-
-struct Heartbeat
-{
-    //1、50 44：牛只盘点协议包头                                          2字节
-    uchar head[2] = {0x50, 0x44};
-    //2、03：协议标识（唤醒上报协议）                                     1字节
-    uchar command = 0x03;
-    //3、0863781152874558：设备号                                           8字节
-    uchar device[8] = {0x01, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11};
-    //4、0123345576543300：SIM卡号                                     8字节
-    uchar sim[8] = {0x04, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11};
-    //5、19 12 10 14 14 23 ：设备上报数据时间，日期格式”yy MM dd HH mm ss”,十进制   6字节
-    uchar date[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    //6、00 00 ：软件版本号                                                 2字节
-    uchar version[2] = {0x00, 0x00};
-    //7、21 99：信号强度和误码率                                             2字节
-    uchar singal[2] = {0x21, 0x99};
-    //8、03 12：上报无线信号强度RSRP为-78.6dbm,上位机添加’-’符号         2字节
-    uchar PSRP[2] = {0x03, 0x12};
-    //9、00 94：上报无线信号信噪比SNR为14.8,该值越大越好                  2字节
-    uchar SNR[2] = {0x00, 0xff};
-    //10、00 01:  上报无线信号覆盖等级 1,该值越小越好,00ff                   2字节
-    uchar grade[2] = {0x00, 0xff};
-    //11、01 02 00 00：小区号,十六进制整数                                      4字节
-    uchar village[4] = {0x00, 0x00, 0x00, 0x00};
-    //12、AA 01 00 01：网关ID                                                4字节
-    uchar gateway[4] = {0x00, 0x00, 0x00, 0x00};
-    //13、0000：复位状态字                                                2字节
-    uchar reset[2] = {0x00, 0x00};
-    //14、 00 00 00 00 00 00 00 00 00 00：预留                     10字节
-    uchar reserve10[10] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    //15、05 78：CRC-16校验                                               2字节
-    uchar CRC[2];
-    //16、0d 0a：结束符                                                        2字节
-    uchar end[2] = {0x0d, 0x0a};
-};
-
-struct CowID
-{
-    //1、50 44：牛只盘点协议包头                                          2字节
-    uchar head[2] = {0x50, 0x44};
-    //2、04：协议标识（数据上报协议）                                     1字节
-    uchar command = 0x04;
-    //3、0863781152874558：设备号                                           8字节
-    uchar device[8] = {0x01, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11};
-    //4、00 00：备用                                                       2字节
-    uchar reserve2[2] = {0x02, 0x00};
-    //5、19 12 10 14 14 23 ：设备上报数据时间，日期格式”yy MM dd HH mm ss”,十进制                                                                       6字节
-    uchar date[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    //6、00 00 00 00 00 00 00 00 00 00 00 00：牛号,16进制               12字节
-    uchar id[12]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    //7、00 00 00 00 ：备用                                              4字节
-    uchar reserve4[4] = {0x00, 0x00, 0x00, 0x00};
-    //8、21 ：信号强度                                                  1字节
-    //9、99：误码率
-    uchar singal[2] = {0x21, 0x99};
-    //10、03 12：上报无线信号强度RSRP为-78.6dbm,上位机添加’-’符号     2字节
-    uchar PSRP[2] = {0x03, 0x12};
-    //11、00 94：上报无线信号信噪比SNR为14.8,该值越大越好                  2字节
-    uchar SNR[2] = {0x00, 0xff};
-    //12、00 01:  上报无线信号覆盖等级 1,该值越小越好,00ff                   2字节
-    uchar grade[2] = {0x00, 0xff};
-    //13、01 02 00 00：小区号,十六进制整数                                      4字节
-    uchar village[4] = {0x00, 0x00, 0x00, 0x00};
-    //14、00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00：预留             16字节
-    uchar reserve16[16] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    //15、05 78：CRC-16校验                                               2字节
-    uchar CRC[2];
-    //16、0d 0a：结束符                                                        2字节
-    uchar end[2] = {0x0d, 0x0a};
-};
 
 struct reply
 {
     //1、50 44：牛只盘点协议包头                                          2字节
-    uchar head[2] = {0x00, 0x00};
+    unsigned char head[2] = {0x00, 0x00};
     //2、05：协议标识（云平台应答协议）                                     1字节
-    uchar command = 0x00;
+    unsigned char command = 0x00;
     //3、4F 4B：应答参数，详见参数列表                                    2字节
-    uchar answer[2] = {0x00, 0x00};
+    unsigned char answer[2] = {0x00, 0x00};
     //4、19 12 10 14 14 23 ：服务器时间，日期格式”yy MM dd HH mm ss”,十进制                                                                       6字节
-    uchar date[6] = {0x00, 0x00};
+    unsigned char date[6] = {0x00, 0x00};
     //5、00：同一牛号上报频次，单位为小时（十进制）                       1字节
-    uchar frequency = 0x00;
+    unsigned char frequency = 0x00;
     //6、00 00 00 00 00 00 00 00 00 00 00 00 00 00 00：预留             15字节
-    uchar reserve15[15] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    unsigned char reserve15[15] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     //7、05 78：CRC-16校验                                               2字节
-    uchar CRC[2] = {0x00, 0x00};
+    unsigned char CRC[2] = {0x00, 0x00};
     //8、0d 0a：结束符                                                        2字节
-    uchar end[2] = {0x00, 0x00};
+    unsigned char end[2] = {0x00, 0x00};
 };
 
 //crc校验
@@ -172,10 +102,10 @@ const unsigned char CRC_TABLE_L[256] = //Low
 
 unsigned int do_CRC(unsigned char *p, unsigned char n)
 {
-    uchar uchCRCHi = 0xFF; /* ¸ßCRC×Ö½Ú³õÊ¼»¯ */
-    uchar uchCRCLo = 0xFF; /* µÍCRC ×Ö½Ú³õÊ¼»¯ */
-    unsigned long uIndex;  /* CRCÑ­»·ÖÐµÄË÷Òý */
-    while (n--)            /* ´«ÊäÏûÏ¢»º³åÇø */
+    unsigned char uchCRCHi = 0xFF; /* ¸ßCRC×Ö½Ú³õÊ¼»¯ */
+    unsigned char uchCRCLo = 0xFF; /* µÍCRC ×Ö½Ú³õÊ¼»¯ */
+    unsigned long uIndex;          /* CRCÑ­»·ÖÐµÄË÷Òý */
+    while (n--)                    /* ´«ÊäÏûÏ¢»º³åÇø */
     {
         uIndex = uchCRCHi ^ *p++; /* ¼ÆËãCRC */
         uchCRCHi = uchCRCLo ^ CRC_TABLE_H[uIndex];
@@ -184,15 +114,15 @@ unsigned int do_CRC(unsigned char *p, unsigned char n)
     return (uchCRCHi << 8 | uchCRCLo);
 }
 // 计算校验
-void RamAdjust(uchar *add, unsigned int adjlength)
+void RamAdjust(unsigned char *add, unsigned int adjlength)
 {
     unsigned int ii;
     ii = do_CRC(add, adjlength - 2);
-    *(add + adjlength - 1) = (uchar)ii;
-    *(add + adjlength - 2) = (uchar)(ii / 0x100);
+    *(add + adjlength - 1) = (unsigned char)ii;
+    *(add + adjlength - 2) = (unsigned char)(ii / 0x100);
 }
 // 检查校验
-uchar TestAdjust(uchar *add, uchar adjlength)
+unsigned char TestAdjust(unsigned char *add, unsigned char adjlength)
 {
     unsigned int ii;
     ii = (unsigned int)*(add + adjlength - 1) + (unsigned int)*(add + adjlength - 2) * 0x100;
@@ -353,8 +283,28 @@ int NetUDP::Send(const char *buf, int size)
 }
 int NetUDP::Recv(char *buf, int bufsize)
 {
-    return recv(sock, buf, bufsize, 0);
+
+    struct timeval tv;
+    fd_set readfds;
+
+    unsigned int n = 0;
+
+    FD_ZERO(&readfds);
+    FD_SET(sock, &readfds);
+    tv.tv_sec = 5;
+    tv.tv_usec = 0;
+    select(sock + 1, &readfds, NULL, NULL, &tv);
+    if (FD_ISSET(sock, &readfds))
+    {
+        n = recv(sock, buf, bufsize, 0);
+    }
+    else
+    {
+        LOGD("net timeout");
+    }
+    return n;
 }
+
 void NetUDP::Close()
 {
     if (sock <= 0)
@@ -362,7 +312,7 @@ void NetUDP::Close()
     closesocket(sock);
 }
 
-void NetUDP::getCurrentTime(uchar utc[6])
+void NetUDP::getCurrentTime(unsigned char utc[6])
 {
 
     time_t now = time(0);
@@ -379,12 +329,10 @@ void NetUDP::getCurrentTime(uchar utc[6])
     utc[5] = (ltm->tm_sec / 10) * 16 + ltm->tm_sec % 10;
 }
 
-bool NetUDP::sendHeartbeat()
+bool NetUDP::sendHeartbeat(Heartbeat hb)
 {
-    Heartbeat hb;
-
     getCurrentTime(hb.date);
-    RamAdjust((uchar *)(&hb), sizeof(hb) - 2);
+    RamAdjust((unsigned char *)(&hb), sizeof(hb) - 2);
     // std::cout << std::hex << int(hb.CRC[0]) << int(hb.CRC[1]) << "\n";
     // for (size_t i = 0; i < sizeof(hb); i++)
     // {
@@ -403,118 +351,203 @@ bool NetUDP::sendHeartbeat()
     // }
     return true;
 }
-bool NetUDP::sendCowIDPen(std::string id, std::string pen)
+
+bool NetUDP::sendCowID(CowID _cowid)
 {
-    CowID cowid;
-    getCurrentTime(cowid.date);
-    cowid.reserve2[0] = 0x03;
-
-    std::vector<int> id_hex;
-    std::vector<int> pen_hex;
-
-    for (int i = id.length() - 1; i >= 0; i = i - 2)
+    RamAdjust((unsigned char *)(&_cowid), sizeof(_cowid) - 2);
+    std::string skt;
+    for (size_t i = 0; i < sizeof(_cowid); i++)
     {
-        int num = 0;
-        if (i == 0)
-        {
-            num = id[i] - 48;
-        }
-        else
-        {
-            num = (id[i - 1] - 48) * 16;
-            num += id[i] - 48;
-        }
-        id_hex.push_back(num);
+        char c[5];
+        sprintf(c, "%X", int(((unsigned char *)(&_cowid))[i]));
+        skt += (c);
     }
-    for (size_t i = 0; i < id_hex.size(); i++)
-    {
-        cowid.id[sizeof(cowid.id) - i - 1] = id_hex[i];
-    }
+    LOGD("socket:%s", skt.c_str());
 
-    for (int i = pen.length() - 1; i >= 0; i = i - 2)
+    if (Send((char *)(&_cowid), sizeof(_cowid)) != sizeof(_cowid))
     {
-        int num = 0;
-        if (i == 0)
-        {
-            num = pen[i] - 48;
-        }
-        else
-        {
-            num = (pen[i - 1] - 48) * 16;
-            num += pen[i] - 48;
-        }
-        pen_hex.push_back(num);
-    }
-    for (size_t i = 0; i < pen_hex.size(); i++)
-    {
-        cowid.reserve4[sizeof(cowid.reserve4) - i - 1] = pen_hex[i];
-    }
-
-    RamAdjust((uchar *)(&cowid), sizeof(cowid) - 2);
-
-    LOGD("ID send %s %s", pen.c_str(), id.c_str());
-    if (Send((char *)(&cowid), sizeof(cowid)) != sizeof(cowid))
+        LOGD("send error");
         return false;
+    }
+
     reply rp;
-    Recv((char *)(&rp), sizeof(rp));
-    LOGD("ID Recv %c%c", rp.answer[0], rp.answer[1]);
-    return true;
-}
-
-bool NetUDP::sendCowID(std::string id)
-{
-    CowID cowid;
-    getCurrentTime(cowid.date);
-    // for (size_t i = 0; i < sizeof(cowid.date); i++)
-    // {
-    //     char *ind = (char *)(cowid.date);
-    //     std::cout << std::hex << int(ind[i]) << " ";
-    // }
-    // std::cout << "\n";
-    std::vector<int> id_hex;
-
-    for (int i = id.length() - 1; i >= 0; i = i - 2)
+    int n = sizeof(rp);
+    if (n == Recv((char *)(&rp), n))
     {
-        int num = 0;
-        if (i == 0)
+        if (rp.answer[0] == 'O' && rp.answer[1] == 'K')
         {
-            num = id[i] - 48;
+            LOGD("ID recv OK");
+            return true;
         }
-        else
-        {
-            num = (id[i - 1] - 48) * 16;
-            num += id[i] - 48;
-        }
-        id_hex.push_back(num);
     }
-    for (size_t i = 0; i < id_hex.size(); i++)
+    else
     {
-        cowid.id[sizeof(cowid.id) - i - 1] = id_hex[i];
-    }
-
-    // for (size_t i = 0; i < sizeof(cowid.id); i++)
-    // {
-    //     std::cout << std::hex << int(((char *)(cowid.id))[i]) << " ";
-    // }
-    // std::cout << "\n";
-
-    RamAdjust((uchar *)(&cowid), sizeof(cowid) - 2);
-    // std::cout << std::hex << int(cowid.CRC[0]) << int(cowid.CRC[1]) << "\n";
-    // for (size_t i = 0; i < sizeof(cowid); i++)
-    // {
-    //     std::cout << std::hex << int(((char *)(&cowid))[i]) << " ";
-    // }
-    // std::cout << "\n";
-    LOGD("ID send %s", id.c_str());
-    if (Send((char *)(&cowid), sizeof(cowid)) != sizeof(cowid))
+        LOGD("recv unknow");
         return false;
-    reply rp;
-    Recv((char *)(&rp), sizeof(rp));
-    LOGD("ID Recv %c%c", rp.answer[0], rp.answer[1]);
+    }
+    // LOGD("ID Recv %c%c", rp.answer[0], rp.answer[1]);
     // for (size_t i = 0; i < sizeof(rp); i++)
     // {
     //     std::cout << std::hex << int(((char *)(&rp))[i]) << " ";
     // }
     // std::cout << "\n";
-    return true;
+    return false;
+}
+
+SendData::SendData()
+{
+}
+bool SendData::setURL(std::string _url, int _port)
+{
+    if (_url.size() < 6)
+    {
+        LOGD("cant recognize:%s.", _url.c_str());
+        return false;
+    }
+    struct hostent *hp;
+    struct in_addr in;
+    struct sockaddr_in local_addr;
+
+    if (!(hp = gethostbyname(_url.c_str())))
+    {
+        LOGD("cant recognize:%s.", _url.c_str());
+        return false;
+    }
+
+    memcpy(&local_addr.sin_addr.s_addr, hp->h_addr, 4);
+    in.s_addr = local_addr.sin_addr.s_addr;
+    std::string ip(inet_ntoa(in));
+    LOGD("url:%s ip:%s", _url.c_str(), ip.c_str());
+    m_url = _url;
+    return setIP(ip, _port);
+}
+bool SendData::setIP(std::string _ip, int _port)
+{
+    if (_ip.size() < 6)
+    {
+        LOGD("cant recognize:%s.", _ip.c_str());
+        return false;
+    }
+
+    m_ip = _ip;
+    m_port = _port;
+    NetUDP net;
+    net.CreateSocket();
+    if (net.Connect(m_ip.c_str(), m_port))
+    {
+        LOGD("can connect %s:%d", m_ip.c_str(), m_port);
+        net.Close();
+        return true;
+    }
+    LOGD("cant connect %s:%d", m_ip.c_str(), m_port);
+
+    return false;
+}
+bool SendData::setDeviceID(std::string _id)
+{
+    if (_id.size() == 16)
+    {
+        m_device_id = _id;
+        return true;
+    }
+    return false;
+}
+bool SendData::setGatewayID(std::string _id)
+{
+    if (_id.size() == 8)
+    {
+        m_gateway_id = _id;
+        return true;
+    }
+    return false;
+}
+SendData::~SendData()
+{
+}
+bool SendData::sendHeartbeat()
+{
+    setURL(m_url, m_port);
+    NetUDP net;
+    net.CreateSocket();
+    if (net.Connect(m_ip.c_str(), m_port))
+    {
+        Heartbeat hb;
+        string2hex(m_device_id, hb.device, 8);
+        string2hex(m_gateway_id, hb.gateway, 4);
+        if (net.sendHeartbeat(hb))
+        {
+            net.Close();
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool SendData::sendCowIDPen(time_t _time, std::string _id, std::string _pen)
+{
+    NetUDP net;
+    net.CreateSocket();
+    if (net.Connect(m_ip.c_str(), m_port))
+    {
+        CowID cowid;
+        cowid.reserve2[0] = 0x03;
+        time2utc2hex(_time, cowid.date);
+        string2hex(m_device_id, cowid.device, 8);
+        string2hex(_id, cowid.id, 12);
+        string2hex(_pen, cowid.reserve4, 4);
+        if (net.sendCowID(cowid))
+        {
+            // LOGD("send %s#%s OK", _pen.c_str(), _id.c_str());
+            net.Close();
+            return true;
+        }
+    }
+    else
+    {
+        LOGD("cant connect %s:%d", m_ip.c_str(), m_port);
+    }
+    return false;
+}
+
+void SendData::string2hex(std::string _s_num, unsigned char *_hex, int _hex_length)
+{
+    std::vector<int> num_hex;
+    if (_s_num.size() > 0 && _s_num.size() <= _hex_length * 2)
+    {
+
+        for (int i = _s_num.length() - 1; i >= 0; i = i - 2)
+        {
+            int num = 0;
+            if (i == 0)
+            {
+                num = _s_num[i] - 48;
+            }
+            else
+            {
+                num = (_s_num[i - 1] - 48) * 16;
+                num += _s_num[i] - 48;
+            }
+            num_hex.push_back(num);
+        }
+        for (size_t i = 0; i < num_hex.size(); i++)
+        {
+            _hex[_hex_length - i - 1] = num_hex[i];
+        }
+    }
+    return;
+}
+void SendData::time2utc2hex(time_t _time, unsigned char _hex[6])
+{
+    _time -= 28800; // 8h*60min*60s to utc
+    tm *ltm = localtime(&_time);
+    int year = (ltm->tm_year % 100);
+    ltm->tm_mon += 1;
+
+    _hex[0] = (year / 10) * 16 + year % 10;
+    _hex[1] = (ltm->tm_mon / 10) * 16 + ltm->tm_mon % 10;
+    _hex[2] = (ltm->tm_mday / 10) * 16 + ltm->tm_mday % 10;
+    _hex[3] = (ltm->tm_hour / 10) * 16 + ltm->tm_hour % 10;
+    _hex[4] = (ltm->tm_min / 10) * 16 + ltm->tm_min % 10;
+    _hex[5] = (ltm->tm_sec / 10) * 16 + ltm->tm_sec % 10;
 }

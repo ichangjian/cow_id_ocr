@@ -41,7 +41,7 @@ IF (CMAKE_SYSTEM_NAME MATCHES "Linux")
     MESSAGE(STATUS "current platform: Linux ")
     add_definitions(-DLINUX_PC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-    add_definitions("-DSHOW_IMAGE")
+    # add_definitions("-DSHOW_IMAGE")
     set(CMAKE_CXX_STANDARD 11)
 
 ELSEIF (CMAKE_SYSTEM_NAME MATCHES "Windows")

@@ -14,7 +14,7 @@ private:
     std::string m_corner_file;
     int m_camera_index;
     std::string m_camera_file;
-    NetUDP m_client;
+    SendData m_client;
     COWID m_ocr_id;
     bool m_test_model;
     bool m_init_flag;
@@ -40,7 +40,7 @@ private:
     std::mutex m_mtx_capture;
 
     std::queue<cv::Mat> m_image_buff;
-    std::queue<std::string> m_id_buff;
+    std::queue<std::pair<time_t, std::string>> m_id_buff;
     std::mutex m_mtx_image_buff;
     std::mutex m_mtx_id_buff;
     bool processImageBuff();
@@ -52,11 +52,13 @@ private:
     void threadSleep(int sec, int nsec);
     double getCurrentTime();
     std::string getCurrentTimeString();
-    void release();
+    bool checkFileExist(const std::string _path_file);
+    bool removeLogfile(int _day);
 
 public:
     COW(std::string _file);
     ~COW();
+    void release();
     bool init();
     bool openCamera();
     bool testVideo(std::string _video_file);
