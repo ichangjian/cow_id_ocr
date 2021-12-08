@@ -1,4 +1,5 @@
 #include "cow_sdk.hpp"
+#include <unistd.h>
 using namespace std;
 using namespace cv;
 
@@ -14,10 +15,12 @@ int main(int argc, char **argv)
     }
     else
     {
-        cow = new COW("./corner.yaml");
+        sleep(10);
+        cow = new COW("/sdcard/Download/corner.yaml");
     }
     std::cout << cow->getVersion() << "\n";
     cow->init();
-    getchar();
+    while (true)
+        getchar();
     delete cow;
 }

@@ -16,11 +16,9 @@ COW::COW(std::string _file)
     m_change_num = 0;
     m_change_id = "";
     m_last_send_id = "";
-#ifdef _ANDROID_
+
     m_window_size = 3;
-#else
-    m_window_size = 4;
-#endif
+
 
     // m_measurement_heartbeat = std::thread(&COW::sendHeartbeat, this);
     m_measurement_cowid = std::thread(&COW::sendCowID, this);
@@ -50,9 +48,9 @@ COW::~COW()
         m_measurement_cowid.join();
     }
 
-#ifdef _ANDROID_
+// #ifdef _ANDROID_
     delete m_cap_uvc;
-#endif
+// #endif
 }
 
 void COW::release()
@@ -362,6 +360,25 @@ bool COW::processIdBuff()
                                 cv::imwrite("/sdcard/Download/send/" + std::to_string(save_send_index++) + ".jpg", image);
                             }
                         }
+#ifdef RS_D455
+                        if (m_depth_flag)
+                        {
+                            rs2::frameset data = m_pipe.wait_for_frames(); // Wait for next set of frames from the camera
+                            rs2::depth_frame df = data.get_depth_frame();
+
+                            rs2::frame depth = df.apply_filter(m_color_map);
+
+                            // Query frame size (width and height)
+                            const int w = depth.as<rs2::video_frame>().get_width();
+                            const int h = depth.as<rs2::video_frame>().get_height();
+
+                            // Create OpenCV matrix of size (w,h) from the colorized depth data
+                            cv::Mat img_depth(cv::Size(w, h), CV_16UC1, (void *)df.get_data(), cv::Mat::AUTO_STEP);
+                            cv::Mat rgb(cv::Size(w, h), CV_8UC3, (void *)depth.get_data(), cv::Mat::AUTO_STEP);
+                            cv::imshow("Depth", rgb);
+                            cv::imwrite("/sdcard/Download/depth/" + getCurrentTimeString() + "_" + id + ".tiff", img_depth);
+                        }
+#endif
                     }
                     else
                     {
@@ -405,12 +422,19 @@ cv::Mat COW::captureImage()
     }
     else
     {
-#ifdef _ANDROID_
+// #ifdef _ANDROID_
         // LOGD("capture uvc image");
         m_cap_uvc->captureMat(image);
-#else
-        m_cap >> image;
+// #else
+        // m_cap >> image;
+#ifdef SHOW_IMAGE
+        cv::namedWindow("CowID", cv::WINDOW_GUI_EXPANDED);
+        cv::resizeWindow("CowID", 960, 540);
+        cv::imshow("CowID", image);
+        cv::waitKey(1);
 #endif
+
+// #endif
     }
     m_mtx_capture.unlock();
     return image;
@@ -588,6 +612,14 @@ bool COW::init()
         {
             m_id_que.push_back("#");
         }
+#ifdef RS_D455
+        m_depth_flag = false;
+        int cap_dep = fs["capture_depth"];
+        if (cap_dep == 1)
+        {
+            m_depth_flag = true;
+        }
+#endif
         return openCamera();
     }
     catch (const std::exception &e)
@@ -641,24 +673,21 @@ bool COW::openCamera()
         }
         else
         {
-            m_cap.open(m_camera_index);
-
-            m_cap.set(cv::CAP_PROP_FRAME_WIDTH, 1920);
-            m_cap.set(cv::CAP_PROP_FRAME_HEIGHT, 1080);
-
-            int width = m_cap.get(cv::CAP_PROP_FRAME_WIDTH);   //帧宽度
-            int height = m_cap.get(cv::CAP_PROP_FRAME_HEIGHT); //帧高度
-            LOGD("image width %d", width);
-            LOGD("image height %d", height);
-        }
-        if (!m_cap.isOpened())
-        {
-            LOGD("open camera failed");
-            return false;
+            m_cap_uvc = new Capture(m_camera_file);
+            if (!m_cap_uvc->initCamera())
+            {
+                LOGD("open camera failed");
+                return false;
+            }
+            m_cap_uvc->printCameraformats();
         }
 #endif
         m_open_camera_flag = true;
         LOGD("open camera finish");
+#ifdef RS_D455
+        // Start streaming with default recommended configuration
+        rs2::pipeline_profile profile = m_pipe.start();
+#endif
         return true;
     }
     else
@@ -682,11 +711,9 @@ bool COW::removeLogfile(int _day)
     now -= _day * 24 * 60 * 60; //天时分秒
     tm *ltm = localtime(&now);
     char buf[512];
-#ifdef __ANDROID__
+
     strftime(buf, 64, "/sdcard/Download/log_%Y-%m-%d.txt", ltm);
-#else
-    strftime(buf, 64, "./temp/log_%Y-%m-%d.txt", ltm);
-#endif
+
     if (checkFileExist(buf))
     {
         LOGD("remove %s", buf);

@@ -2,8 +2,9 @@
 
 int main(int argc, char *argv[])
 {
-    Capture cap("/dev/video2");
+    Capture cap("/dev/video0");
     cap.initCamera();
+    // cap.setCamera(MJPG_FORMAT, 1920, 1080, 30);
     cap.printCameraformats();
     cv::Mat image;
 

@@ -119,11 +119,9 @@ private:
     time_t now = time(0);
     tm *ltm = localtime(&now);
     char buf[512];
-#ifdef __ANDROID__
+
     strftime(buf, 64, "/sdcard/Download/log_%Y-%m-%d.txt", ltm);
-#else
-    strftime(buf, 64, "./temp/log_%Y-%m-%d.txt", ltm);
-#endif
+
     std::ofstream outFile;
     outFile.open(buf, std::ios::app);
     if (outFile.is_open())
@@ -136,7 +134,7 @@ private:
     }
     else
     {
-      LOGI("cant open %s", buf);
+      //LOGI("cant open %s", buf);
     }
     outFile.close();
   }

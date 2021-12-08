@@ -170,7 +170,7 @@ bool COWID::frontRed(const cv::Mat &_R, std::string &_id)
         cv::imshow("Cow Pen", image);
         if (num == -2)
         {
-            cv::imwrite("./temp/error_r_" + std::to_string(save_index++) + ".png", image);
+            cv::imwrite("/sdcard/Download/temp/error_r_" + std::to_string(save_index++) + ".png", image);
             return false;
         }
 
@@ -248,7 +248,7 @@ bool COWID::backGreen(const cv::Mat &_G, std::string &_id)
         cv::imshow("Cow ID", image);
         if (num == -2)
         {
-            cv::imwrite("./temp/error_g_" + std::to_string(save_index++) + ".png", image);
+            cv::imwrite("/sdcard/Download/temp/error_g_" + std::to_string(save_index++) + ".png", image);
             return false;
         }
 

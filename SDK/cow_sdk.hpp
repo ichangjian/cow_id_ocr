@@ -6,6 +6,10 @@
 #include <opencv2/opencv.hpp>
 #include <thread>
 #include <atomic>
+#ifdef RS_D455
+#include <librealsense2/rs.hpp>
+#endif
+
 class COW
 {
 private:
@@ -29,16 +33,22 @@ private:
     std::thread m_measurement_cowid;
     std::atomic<bool> m_release_flag;
     cv::VideoCapture m_cap;
-#ifdef _ANDROID_
+// #ifdef _ANDROID_
     Capture *m_cap_uvc;
-#endif
+// #endif
     std::list<std::string> m_id_que;
     bool m_send_id_flag;
     std::string m_last_send_id;
     cv::Mat captureImage();
     std::string recogizeImage(const cv::Mat &_image);
     std::mutex m_mtx_capture;
-
+#ifdef RS_D455
+    // Declare depth colorizer for pretty visualization of depth data
+    rs2::colorizer m_color_map;
+    // Declare RealSense pipeline, encapsulating the actual device and sensors
+    rs2::pipeline m_pipe;
+    bool m_depth_flag=false;
+#endif
     std::queue<cv::Mat> m_image_buff;
     std::queue<std::pair<time_t, std::string>> m_id_buff;
     std::mutex m_mtx_image_buff;

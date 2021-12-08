@@ -238,6 +238,9 @@ RESET:
             fs.writeComment("8位数字");
             fs << "gatewayID"
                << "00000000";
+            fs.writeComment("拍摄深度图");
+            fs << "capture_depth"
+               << 0;
 
             fs.release();
             imwrite("dst.png", dst);
