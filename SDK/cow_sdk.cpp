@@ -48,9 +48,9 @@ COW::~COW()
         m_measurement_cowid.join();
     }
 
-// #ifdef _ANDROID_
+    // #ifdef _ANDROID_
     delete m_cap_uvc;
-// #endif
+    // #endif
 }
 
 void COW::release()
@@ -152,6 +152,7 @@ bool COW::sendCowID()
                                 m_id_buff.push(time_id);
                                 // LOGD("push id buff size %d", m_id_buff.size());
                                 m_mtx_id_buff.unlock();
+                                threadSleep(2, 0);
                             }
                             else
                             {
@@ -374,8 +375,10 @@ bool COW::processIdBuff()
 
                             // Create OpenCV matrix of size (w,h) from the colorized depth data
                             cv::Mat img_depth(cv::Size(w, h), CV_16UC1, (void *)df.get_data(), cv::Mat::AUTO_STEP);
+#ifdef SHOW_IMAGE
                             cv::Mat rgb(cv::Size(w, h), CV_8UC3, (void *)depth.get_data(), cv::Mat::AUTO_STEP);
                             cv::imshow("Depth", rgb);
+#endif
                             cv::imwrite("/sdcard/Download/depth/" + getCurrentTimeString() + "_" + id + ".tiff", img_depth);
                         }
 #endif
@@ -422,11 +425,11 @@ cv::Mat COW::captureImage()
     }
     else
     {
-// #ifdef _ANDROID_
+        // #ifdef _ANDROID_
         // LOGD("capture uvc image");
         m_cap_uvc->captureMat(image);
 // #else
-        // m_cap >> image;
+// m_cap >> image;
 #ifdef SHOW_IMAGE
         cv::namedWindow("CowID", cv::WINDOW_GUI_EXPANDED);
         cv::resizeWindow("CowID", 960, 540);
@@ -434,7 +437,7 @@ cv::Mat COW::captureImage()
         cv::waitKey(1);
 #endif
 
-// #endif
+        // #endif
     }
     m_mtx_capture.unlock();
     return image;
