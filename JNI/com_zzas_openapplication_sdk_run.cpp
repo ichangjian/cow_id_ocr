@@ -1,6 +1,7 @@
 #include "com_zzas_openapplication_sdk_run.h"
 #include "../SDK/cow_sdk.hpp"
 #include <android/log.h>
+#include <unistd.h>
 
 #ifdef _Included_com_zzas_openapplication_sdk_run
 extern "C"
@@ -14,7 +15,7 @@ extern "C"
       LOGI("%s", cow.getVersion());
       while (!cow.init())
       {
-        LODI("init fail");
+        LOGI("init fail");
         cow.reset();
         usleep(3e7);
       }
