@@ -12,9 +12,11 @@ extern "C"
     try
     {
       LOGI("%s", cow.getVersion());
-      if (!cow.init())
+      while (!cow.init())
       {
-        cow.release();
+        LODI("init fail");
+        cow.reset();
+        usleep(3e7);
       }
       return 0;
     }

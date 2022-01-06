@@ -60,6 +60,7 @@ public:
     ~COW();
     void release();
     bool init();
+    bool reset();
     bool openCamera();
     bool testVideo(std::string _video_file);
     const char *getVersion();

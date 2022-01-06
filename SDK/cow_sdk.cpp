@@ -55,6 +55,51 @@ COW::~COW()
 #endif
 }
 
+bool COW::reset()
+{
+    LOGD("reset enter");
+    m_release_flag = true;
+
+    if (m_measurement_imagebuff.joinable())
+    {
+        m_measurement_imagebuff.join();
+    }
+    if (m_measurement_idbuff.joinable())
+    {
+        m_measurement_idbuff.join();
+    }
+    if (m_measurement_cowid.joinable())
+    {
+        m_measurement_cowid.join();
+    }
+
+    m_camera_index = 0;
+    m_camera_file = "/dev/video";
+    m_test_model = false;
+    m_init_flag = false;
+    m_heartbeat_flag = true;
+    m_open_camera_flag = false;
+    m_send_id_flag = true;
+    m_release_flag = false;
+    m_heartbeat_slp = 60;
+    m_change_num = 0;
+    m_change_id = "";
+    m_last_send_id = "";
+#ifdef _ANDROID_
+    m_window_size = 3;
+#else
+    m_window_size = 4;
+#endif
+
+    // m_measurement_heartbeat = std::thread(&COW::sendHeartbeat, this);
+    m_measurement_cowid = std::thread(&COW::sendCowID, this);
+    m_measurement_imagebuff = std::thread(&COW::processIdBuff, this);
+    m_measurement_idbuff = std::thread(&COW::processImageBuff, this);
+    
+    LOGD("reset exit");
+    return true;
+}
+
 void COW::release()
 {
     LOGD("release");
@@ -154,6 +199,7 @@ bool COW::sendCowID()
                                 m_id_buff.push(time_id);
                                 // LOGD("push id buff size %d", m_id_buff.size());
                                 m_mtx_id_buff.unlock();
+                                threadSleep(2, 0);
                             }
                             else
                             {
