@@ -55,6 +55,11 @@ private:
     bool checkFileExist(const std::string _path_file);
     bool removeLogfile(int _day);
 
+    std::string m_path_jam_file;
+    bool m_save_jam_flag;
+    bool jam2file(time_t _t, std::string _id);
+    bool loadJam();
+
 public:
     COW(std::string _file);
     ~COW();

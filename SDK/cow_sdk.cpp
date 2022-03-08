@@ -16,6 +16,8 @@ COW::COW(std::string _file)
     m_change_num = 0;
     m_change_id = "";
     m_last_send_id = "";
+    m_path_jam_file = "/sdcard/Download/jam.txt";
+    m_save_jam_flag = true;
 #ifdef _ANDROID_
     m_window_size = 3;
 #else
@@ -95,7 +97,7 @@ bool COW::reset()
     m_measurement_cowid = std::thread(&COW::sendCowID, this);
     m_measurement_imagebuff = std::thread(&COW::processIdBuff, this);
     m_measurement_idbuff = std::thread(&COW::processImageBuff, this);
-    
+
     LOGD("reset exit");
     return true;
 }
@@ -194,12 +196,28 @@ bool COW::sendCowID()
                             m_last_send_id = g_id;
                             if (!m_client.sendCowIDPen(time_id.first, g_id, r_pen))
                             {
-                                LOGD("send error %s", id.c_str());
-                                m_mtx_id_buff.lock();
-                                m_id_buff.push(time_id);
-                                // LOGD("push id buff size %d", m_id_buff.size());
-                                m_mtx_id_buff.unlock();
-                                threadSleep(2, 0);
+                                int finish_save_flag = false;
+                                if (m_save_jam_flag)
+                                {
+                                    if (jam2file(time_id.first, time_id.second))
+                                    {
+                                        finish_save_flag = true;
+                                    }
+                                    else
+                                    {
+                                        finish_save_flag = false;
+                                    }
+                                }
+
+                                if (finish_save_flag == false)
+                                {
+                                    LOGD("send error %s", id.c_str());
+                                    m_mtx_id_buff.lock();
+                                    m_id_buff.push(time_id);
+                                    // LOGD("push id buff size %d", m_id_buff.size());
+                                    m_mtx_id_buff.unlock();
+                                    threadSleep(2, 0);
+                                }
                             }
                             else
                             {
@@ -236,7 +254,11 @@ bool COW::sendCowID()
                     save_cur_tm = heart_cur_tm;
                     if (!m_test_model)
                     {
-                        m_client.sendHeartbeat();
+
+                        if (m_client.sendHeartbeat() && m_save_jam_flag)
+                        {
+                            loadJam();
+                        }
                         removeLogfile(7);
                     }
                 }
@@ -737,6 +759,52 @@ bool COW::removeLogfile(int _day)
     {
         LOGD("remove %s", buf);
         remove(buf);
+    }
+
+    return true;
+}
+
+bool COW::jam2file(time_t _t, std::string _id)
+{
+    std::ofstream jam_file;
+    jam_file.open(m_path_jam_file, std::ios::app);
+    if (jam_file.is_open())
+    {
+        LOGD("save to file");
+        jam_file << _t << " " << _id << "\n";
+        jam_file.close();
+        return true;
+    }
+    else
+    {
+        jam_file.close();
+        return false;
+    }
+}
+
+bool COW::loadJam()
+{
+    if (checkFileExist(m_path_jam_file))
+    {
+        std::ifstream jam_file;
+        jam_file.open(m_path_jam_file);
+        if (jam_file.is_open())
+        {
+            while (!jam_file.eof())
+            {
+
+                time_t t;
+                std::string id;
+                jam_file >> t >> id;
+                m_mtx_id_buff.lock();
+                m_id_buff.push(std::pair<time_t, std::string>(t, id));
+                m_mtx_id_buff.unlock();
+                threadSleep(2, 0);
+            }
+            LOGD("%d", m_id_buff.size());
+            LOGD("load finish remove %s", m_path_jam_file);
+            remove(m_path_jam_file.c_str());
+        }
     }
 
     return true;
